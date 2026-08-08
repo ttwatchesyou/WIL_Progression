@@ -1,0 +1,273 @@
+// src/pages/index.tsx
+import React, { useEffect, useState } from 'react';
+import { Button, Row, Col, Tag, Carousel, Image } from 'antd';
+import {
+  RocketOutlined,
+  LoginOutlined,
+  CrownOutlined,
+  FireOutlined,
+} from '@ant-design/icons';
+import { useRouter } from 'next/router';
+import styled, { keyframes } from 'styled-components';
+import Cookies from 'js-cookie';
+import { apiClient } from '@/services/apiClient';
+
+const floatAnimation = keyframes`
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+`;
+
+const PageContainer = styled.div`
+  min-height: 100vh;
+  background: radial-gradient(circle at 50% -10%, #e0e7ff 0%, #f8fafc 45%, #f1f5f9 100%);
+  color: #0f172a;
+  font-family: 'Prompt', -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+`;
+
+const HeaderNavbar = styled.header`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 48px;
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+`;
+
+const LogoBox = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+`;
+
+const LogoIcon = styled.div`
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #0a192f 0%, #1e3a8a 100%);
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #d4af37;
+  font-weight: 700;
+  font-size: 22px;
+`;
+
+const HeroContainer = styled.div`
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 30px 24px 40px;
+  text-align: center;
+  width: 100%;
+`;
+
+const MainTitle = styled.h1`
+  font-size: clamp(2rem, 4.5vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 16px;
+  color: #0f172a;
+
+  span.highlight {
+    background: linear-gradient(135deg, #0a192f 0%, #2563eb 50%, #c5a059 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+`;
+
+const StyledCarouselWrapper = styled.div`
+  max-width: 1100px;
+  margin: 0 auto 50px;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(10, 25, 47, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+
+  .slick-slide img {
+    width: 100%;
+    height: 420px;
+    object-fit: cover;
+
+    @media (max-width: 576px) {
+      height: 240px;
+    }
+  }
+`;
+
+const CarouselContent = styled.div`
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(10, 25, 47, 0.9) 100%);
+  padding: 30px 40px;
+  color: #ffffff;
+  text-align: left;
+`;
+
+const FloatingGlassCard = styled.div`
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(25px) saturate(180%);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  padding: 20px;
+  height: 100%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  animation: ${floatAnimation} 6s infinite ease-in-out;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 18px 36px rgba(10, 25, 47, 0.1);
+  }
+`;
+
+const SectionHeader = styled.div`
+  text-align: center;
+  margin-bottom: 32px;
+
+  h2 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 8px;
+  }
+  p {
+    color: #64748b;
+  }
+`;
+
+export default function Home() {
+  const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showcaseData, setShowcaseData] = useState<{ carousel: any[]; featured_journals: any[] }>({
+    carousel: [],
+    featured_journals: [],
+  });
+
+  useEffect(() => {
+    if (Cookies.get('token')) setIsLoggedIn(true);
+
+    apiClient
+      .get('/public/showcase')
+      .then((res: any) => {
+        if (res?.data) setShowcaseData(res.data);
+      })
+      .catch(() => {});
+  }, []);
+
+  return (
+    <PageContainer>
+      <HeaderNavbar>
+        <LogoBox onClick={() => router.push('/')}>
+          <LogoIcon>W</LogoIcon>
+          <div style={{ fontWeight: 700, fontSize: '1.2rem' }}>
+            WILL <span style={{ color: '#c5a059' }}>Progression</span>
+          </div>
+        </LogoBox>
+
+        <div>
+          {isLoggedIn ? (
+            <Button
+              type="primary"
+              icon={<RocketOutlined />}
+              style={{ background: '#0a192f', border: '1px solid #d4af37', height: 44, borderRadius: 12 }}
+              onClick={() => router.push('/dashboard/student')}
+            >
+              ไปยัง Dashboard
+            </Button>
+          ) : (
+            <Button
+              type="primary"
+              icon={<LoginOutlined />}
+              style={{ background: '#0a192f', border: '1px solid #d4af37', height: 44, borderRadius: 12 }}
+              onClick={() => router.push('/login')}
+            >
+              เข้าสู่ระบบ
+            </Button>
+          )}
+        </div>
+      </HeaderNavbar>
+
+      <HeroContainer>
+        <Tag color="gold" icon={<CrownOutlined />} style={{ padding: '6px 16px', borderRadius: 20, marginBottom: 16 }}>
+          โครงการ WIL แผนกวิชาเมคคาทรอนิกส์และหุ่นยนต์
+        </Tag>
+        <MainTitle>
+          ผลงานและทักษะปฏิบัติงานจริง <br />
+          <span className="highlight">เมคคาทรอนิกส์และหุ่นยนต์</span>
+        </MainTitle>
+      </HeroContainer>
+
+      {/* 🏆 Carousel ผลงาน / รางวัลการแข่งขัน (ซ่อนอัตโนมัติหากไม่มีข้อมูล) */}
+      {showcaseData.carousel && showcaseData.carousel.length > 0 && (
+        <StyledCarouselWrapper>
+          <Carousel autoplay effect="fade">
+            {showcaseData.carousel.map((slide) => (
+              <div key={slide.id} style={{ position: 'relative' }}>
+                <img
+                  src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}${slide.image_url}`}
+                  alt={slide.title}
+                />
+                <CarouselContent>
+                  <h3 style={{ color: '#d4af37', fontSize: '1.4rem', margin: 0 }}>{slide.title}</h3>
+                  <p style={{ margin: '4px 0 0 0', color: '#cbd5e1' }}>{slide.description}</p>
+                </CarouselContent>
+              </div>
+            ))}
+          </Carousel>
+        </StyledCarouselWrapper>
+      )}
+
+      {/* ⚡ Floating Glass Cards (ซ่อนทั้งส่วนอัตโนมัติหากไม่มีผลงานถูกเลือก) */}
+      {showcaseData.featured_journals && showcaseData.featured_journals.length > 0 && (
+        <div style={{ maxWidth: 1200, margin: '0 auto 60px', padding: '0 24px', width: '100%' }}>
+          <SectionHeader>
+            <h2><FireOutlined style={{ color: '#c5a059' }} /> ผลงานการปฏิบัติงานรายวัน (Featured WIL Journals)</h2>
+            <p>บันทึกการทำงานจริงในสนามจากนักเรียนโครงการ WIL</p>
+          </SectionHeader>
+
+          <Row gutter={[20, 20]}>
+            {showcaseData.featured_journals.map((item) => {
+              let images: string[] = [];
+              try {
+                images = JSON.parse(item.image_url);
+              } catch {}
+
+              return (
+                <Col xs={24} sm={12} md={8} key={item.id}>
+                  <FloatingGlassCard>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <span style={{ fontWeight: 700, color: '#0a192f' }}>{item.first_name} {item.last_name}</span>
+                      <Tag color="gold">Rank Lv.{item.rank_level}</Tag>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>วันที่: {item.report_date} ({item.classroom})</div>
+                    <p style={{ fontSize: 13, color: '#334155', minHeight: 40 }}>{item.details}</p>
+
+                    {images.length > 0 && (
+                      <Image
+                        height={140}
+                        width="100%"
+                        style={{ objectFit: 'cover', borderRadius: 12 }}
+                        src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}${images[0]}`}
+                        alt="ภาพการปฏิบัติงาน"
+                      />
+                    )}
+                  </FloatingGlassCard>
+                </Col>
+              );
+            })}
+          </Row>
+        </div>
+      )}
+
+      <footer style={{ textAlign: 'center', padding: 24, color: '#64748b', borderTop: '1px solid #e2e8f0' }}>
+        WILL Progression System &copy; {new Date().getFullYear()} — Mechatronics And Robotics Rayong Technical College | โครงการ WIL แผนกวิชาเมคคาทรอนิกส์และหุ่นยนต์
+      </footer>
+    </PageContainer>
+  );
+}
