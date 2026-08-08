@@ -1,10 +1,14 @@
 // src/components/MainLayout.tsx
-import React, { ReactNode } from 'react';
-import { Layout, Avatar, Dropdown, Space, Tag, message } from 'antd';
-import { UserOutlined, LogoutOutlined, TrophyOutlined } from '@ant-design/icons';
-import { useRouter } from 'next/router';
-import Cookies from 'js-cookie';
-import styled, { keyframes } from 'styled-components';
+import React, { ReactNode } from "react";
+import { Layout, Avatar, Dropdown, Space, Tag, message } from "antd";
+import {
+  UserOutlined,
+  LogoutOutlined,
+  TrophyOutlined,
+} from "@ant-design/icons";
+import { useRouter } from "next/router";
+import Cookies from "js-cookie";
+import styled, { keyframes } from "styled-components";
 
 const { Header, Content, Footer } = Layout;
 
@@ -15,8 +19,13 @@ const floatAnimation = keyframes`
 
 const StyledLayout = styled(Layout)`
   min-height: 100vh;
-  background: radial-gradient(circle at 50% -10%, #e0e7ff 0%, #f8fafc 45%, #f1f5f9 100%);
-  font-family: 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: radial-gradient(
+    circle at 50% -10%,
+    #e0e7ff 0%,
+    #f8fafc 45%,
+    #f1f5f9 100%
+  );
+  font-family: "Prompt", -apple-system, BlinkMacSystemFont, sans-serif;
   position: relative;
   overflow-x: hidden;
 `;
@@ -27,7 +36,11 @@ const AmbientBlob1 = styled.div`
   left: 10%;
   width: min(500px, 80vw);
   height: min(500px, 80vw);
-  background: radial-gradient(circle, rgba(191, 219, 254, 0.45) 0%, rgba(255, 255, 255, 0) 70%);
+  background: radial-gradient(
+    circle,
+    rgba(191, 219, 254, 0.45) 0%,
+    rgba(255, 255, 255, 0) 70%
+  );
   border-radius: 50%;
   filter: blur(80px);
   animation: ${floatAnimation} 16s infinite ease-in-out;
@@ -41,7 +54,11 @@ const AmbientBlob2 = styled.div`
   right: 5%;
   width: min(550px, 80vw);
   height: min(550px, 80vw);
-  background: radial-gradient(circle, rgba(254, 240, 138, 0.35) 0%, rgba(255, 255, 255, 0) 70%);
+  background: radial-gradient(
+    circle,
+    rgba(254, 240, 138, 0.35) 0%,
+    rgba(255, 255, 255, 0) 70%
+  );
   border-radius: 50%;
   filter: blur(90px);
   animation: ${floatAnimation} 20s infinite ease-in-out reverse;
@@ -149,22 +166,26 @@ interface MainLayoutProps {
   rankLevel?: number;
 }
 
-export default function MainLayout({ children, userName = 'ผู้ใช้งาน', rankLevel = 1 }: MainLayoutProps) {
+export default function MainLayout({
+  children,
+  userName = "ผู้ใช้งาน",
+  rankLevel = 1,
+}: MainLayoutProps) {
   const router = useRouter();
 
   const handleLogout = () => {
-    Cookies.remove('token');
-    Cookies.remove('user_role');
-    localStorage.removeItem('user');
-    message.success('ออกจากระบบเรียบร้อยแล้ว');
-    router.push('/login');
+    Cookies.remove("token");
+    Cookies.remove("user_role");
+    localStorage.removeItem("user");
+    message.success("ออกจากระบบเรียบร้อยแล้ว");
+    router.push("/login");
   };
 
   const userMenuItems = [
     {
-      key: 'logout',
-      icon: <LogoutOutlined style={{ color: '#ef4444' }} />,
-      label: <span style={{ color: '#ef4444' }}>ออกจากระบบ</span>,
+      key: "logout",
+      icon: <LogoutOutlined style={{ color: "#ef4444" }} />,
+      label: <span style={{ color: "#ef4444" }}>ออกจากระบบ</span>,
       onClick: handleLogout,
     },
   ];
@@ -175,25 +196,25 @@ export default function MainLayout({ children, userName = 'ผู้ใช้ง
       <AmbientBlob2 />
 
       <StyledHeader>
-        <LogoBox onClick={() => router.push('/')}>
+        <LogoBox onClick={() => router.push("/")}>
           <LogoIcon>W</LogoIcon>
           <BrandText>
             WILL <span>Progression</span>
           </BrandText>
         </LogoBox>
 
-        <Space size={8} style={{ display: 'flex', alignItems: 'center' }}>
+        <Space size={8} style={{ display: "flex", alignItems: "center" }}>
           <Tag
-            icon={<TrophyOutlined style={{ color: '#c5a059' }} />}
+            icon={<TrophyOutlined style={{ color: "#c5a059" }} />}
             style={{
-              background: '#0a192f',
-              color: '#ffffff',
-              border: '1px solid #d4af37',
+              background: "#0a192f",
+              color: "#ffffff",
+              border: "1px solid #d4af37",
               borderRadius: 14,
-              padding: '0 8px',
+              padding: "0 8px",
               height: 28,
-              display: 'inline-flex',
-              alignItems: 'center',
+              display: "inline-flex",
+              alignItems: "center",
               fontSize: 11,
               fontWeight: 600,
               margin: 0,
@@ -206,7 +227,12 @@ export default function MainLayout({ children, userName = 'ผู้ใช้ง
             <UserProfileBox>
               <Avatar
                 size={24}
-                style={{ backgroundColor: '#0a192f', border: '1px solid #d4af37', color: '#d4af37', fontSize: 11 }}
+                style={{
+                  backgroundColor: "#0a192f",
+                  border: "1px solid #d4af37",
+                  color: "#d4af37",
+                  fontSize: 11,
+                }}
                 icon={<UserOutlined />}
               />
               <UserNameText>{userName}</UserNameText>
@@ -217,8 +243,19 @@ export default function MainLayout({ children, userName = 'ผู้ใช้ง
 
       <StyledContent>{children}</StyledContent>
 
-      <Footer style={{ textAlign: 'center', background: 'transparent', color: '#64748b', fontSize: 12, padding: '16px 12px', position: 'relative', zIndex: 1 }}>
-        WILL Progression System &copy; {new Date().getFullYear()} — Mechatronics Rayong Tech
+      <Footer
+        style={{
+          textAlign: "center",
+          background: "transparent",
+          color: "#64748b",
+          fontSize: 12,
+          padding: "16px 12px",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        WILL Progression System &copy; {new Date().getFullYear()} — Mechatronics
+        Rayong Tech
       </Footer>
     </StyledLayout>
   );

@@ -4,7 +4,7 @@ import type { ThemeConfig } from "antd";
 const theme: ThemeConfig = {
   token: {
     colorPrimary: "#0A192F", // สีกรมท่าลึกเข้ม
-    colorLink: "#C5A059",    // สีทองแชมเปญ
+    colorLink: "#C5A059", // สีทองแชมเปญ
     colorSuccess: "#10B981",
     colorWarning: "#D4AF37",
     colorError: "#EF4444",

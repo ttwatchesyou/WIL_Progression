@@ -1,19 +1,29 @@
-import React, { useState } from 'react';
-import { Form, Input, Button, message } from 'antd';
-import { UserOutlined, LockOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
-import { useRouter } from 'next/router';
-import styled from 'styled-components';
-import { apiClient } from '@/services/apiClient';
-import Cookies from 'js-cookie';
+import React, { useState } from "react";
+import { Form, Input, Button, message } from "antd";
+import {
+  UserOutlined,
+  LockOutlined,
+  SafetyCertificateOutlined,
+} from "@ant-design/icons";
+import { useRouter } from "next/router";
+import styled from "styled-components";
+import { apiClient } from "@/services/apiClient";
+import Cookies from "js-cookie";
+import Head from "next/head";
 
 const PageContainer = styled.div`
   min-height: 100vh;
-  background: radial-gradient(circle at 50% -10%, #020617 0%, #0f172a 50%, #030712 100%);
+  background: radial-gradient(
+    circle at 50% -10%,
+    #020617 0%,
+    #0f172a 50%,
+    #030712 100%
+  );
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 20px;
-  font-family: 'Prompt', -apple-system, sans-serif;
+  font-family: "Prompt", -apple-system, sans-serif;
   position: relative;
   overflow: hidden;
 `;
@@ -27,7 +37,8 @@ const AdminCard = styled.div`
   border-radius: 28px;
   border: 1px solid rgba(212, 175, 55, 0.5);
   padding: 40px;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
   position: relative;
   z-index: 10;
 `;
@@ -84,7 +95,8 @@ const StyledInputWrapper = styled.div`
       }
     }
 
-    &:hover, &:focus-within {
+    &:hover,
+    &:focus-within {
       border-color: #d4af37 !important;
     }
   }
@@ -121,66 +133,78 @@ export default function AdminLogin() {
   const onAdminLogin = async (values: any) => {
     setLoading(true);
     try {
-      const res: any = await apiClient.post('/admin/login', values);
+      const res: any = await apiClient.post("/admin/login", values);
 
-      Cookies.set('token', res.token, { expires: 1 });
-      Cookies.set('user_role', 'admin', { expires: 1 });
-      localStorage.setItem('user', JSON.stringify(res.user));
+      Cookies.set("token", res.token, { expires: 1 });
+      Cookies.set("user_role", "admin", { expires: 1 });
+      localStorage.setItem("user", JSON.stringify(res.user));
 
-      message.success('ยินดีต้อนรับ ผู้ดูแลระบบ (Admin)');
-      router.push('/dashboard/admin');
+      message.success("ยินดีต้อนรับ ผู้ดูแลระบบ (Admin)");
+      router.push("/dashboard/admin");
     } catch (error: any) {
-      message.error(error.message || 'Username หรือ Password แอดมินไม่ถูกต้อง');
+      message.error(error.message || "Username หรือ Password แอดมินไม่ถูกต้อง");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <PageContainer>
-      <AdminCard>
-        <HeaderBox>
-          <ShieldIconBox>
-            <SafetyCertificateOutlined />
-          </ShieldIconBox>
-          <Title>
-            ADMIN <span>CONTROL CENTER</span>
-          </Title>
-          <Subtitle>ระบบหลังบ้านผู้ดูแลระบบ WILL Progression</Subtitle>
-        </HeaderBox>
+    <>
+      <Head>
+        <title>Mechatronics and Robotics</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link href="/logo/MechaLogo.png" rel="icon" />
+        <meta property="og:title" content="Mechatronics and Robotics" />
+      </Head>
+      <PageContainer>
+        <AdminCard>
+          <HeaderBox>
+            <ShieldIconBox>
+              <SafetyCertificateOutlined />
+            </ShieldIconBox>
+            <Title>
+              ADMIN <span>CONTROL CENTER</span>
+            </Title>
+            <Subtitle>ระบบหลังบ้านผู้ดูแลระบบ WILL Progression</Subtitle>
+          </HeaderBox>
 
-        <Form layout="vertical" onFinish={onAdminLogin} requiredMark={false}>
-          <StyledInputWrapper>
-            <Form.Item
-              label="Admin Username"
-              name="username"
-              rules={[{ required: true, message: 'กรุณากรอก Username แอดมิน' }]}
-            >
-              <Input
-                prefix={<UserOutlined style={{ color: '#d4af37' }} />}
-                placeholder="admin"
-                size="large"
-              />
-            </Form.Item>
+          <Form layout="vertical" onFinish={onAdminLogin} requiredMark={false}>
+            <StyledInputWrapper>
+              <Form.Item
+                label="Admin Username"
+                name="username"
+                rules={[
+                  { required: true, message: "กรุณากรอก Username แอดมิน" },
+                ]}
+              >
+                <Input
+                  prefix={<UserOutlined style={{ color: "#d4af37" }} />}
+                  placeholder="admin"
+                  size="large"
+                />
+              </Form.Item>
 
-            <Form.Item
-              label="Admin Password"
-              name="password"
-              rules={[{ required: true, message: 'กรุณากรอก Password แอดมิน' }]}
-            >
-              <Input.Password
-                prefix={<LockOutlined style={{ color: '#d4af37' }} />}
-                placeholder="••••••••"
-                size="large"
-              />
-            </Form.Item>
-          </StyledInputWrapper>
+              <Form.Item
+                label="Admin Password"
+                name="password"
+                rules={[
+                  { required: true, message: "กรุณากรอก Password แอดมิน" },
+                ]}
+              >
+                <Input.Password
+                  prefix={<LockOutlined style={{ color: "#d4af37" }} />}
+                  placeholder="••••••••"
+                  size="large"
+                />
+              </Form.Item>
+            </StyledInputWrapper>
 
-          <SubmitButton type="primary" htmlType="submit" loading={loading}>
-            เข้าสู่ระบบแอดมิน
-          </SubmitButton>
-        </Form>
-      </AdminCard>
-    </PageContainer>
+            <SubmitButton type="primary" htmlType="submit" loading={loading}>
+              เข้าสู่ระบบแอดมิน
+            </SubmitButton>
+          </Form>
+        </AdminCard>
+      </PageContainer>
+    </>
   );
 }

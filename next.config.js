@@ -5,11 +5,11 @@ const nextConfig = {
     styledComponents: true,
   },
   transpilePackages: [
-    'antd',
-    '@ant-design/icons',
-    'rc-util',
-    'rc-pagination',
-    'rc-picker',
+    "antd",
+    "@ant-design/icons",
+    "rc-util",
+    "rc-pagination",
+    "rc-picker",
   ],
 };
 

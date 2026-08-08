@@ -1,5 +1,5 @@
 // src/services/teacherService.ts
-import { apiClient } from './apiClient';
+import { apiClient } from "./apiClient";
 
 export interface CreateTaskPayload {
   created_by: number;
@@ -13,20 +13,20 @@ export interface CreateTaskPayload {
 
 export interface ApproveTaskPayload {
   teacher_id: number;
-  step: 'step1_assign' | 'step2_grade';
-  status: 'approved' | 'rejected';
+  step: "step1_assign" | "step2_grade";
+  status: "approved" | "rejected";
   remarks?: string;
 }
 
 export const teacherService = {
   // ดึงรายชื่อนักเรียนทั้งหมด
-  getStudents: () => apiClient.get('/students'),
+  getStudents: () => apiClient.get("/students"),
 
   // ดึงรายการภารกิจทั้งหมด
-  getAllTasks: () => apiClient.get('/tasks'),
+  getAllTasks: () => apiClient.get("/tasks"),
 
   // สั่งมอบหมายงานใหม่ให้นักเรียน (รองรับหลายคนพร้อมกัน)
-  createTask: (data: CreateTaskPayload) => apiClient.post('/tasks', data),
+  createTask: (data: CreateTaskPayload) => apiClient.post("/tasks", data),
 
   // อนุมัติงาน 2 ขั้นตอน
   approveTask: (taskId: number | string, data: ApproveTaskPayload) =>
@@ -34,5 +34,5 @@ export const teacherService = {
 
   // ดึงรายงานประจำวัน (WIL Journals)
   getReports: (params?: { classroom?: string; date?: string }) =>
-    apiClient.get('/reports', { params }),
+    apiClient.get("/reports", { params }),
 };

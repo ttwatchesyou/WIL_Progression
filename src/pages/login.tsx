@@ -1,12 +1,18 @@
 // src/pages/login.tsx
-import React, { useState } from 'react';
-import { Form, Input, Button, Modal, message } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined, KeyOutlined } from '@ant-design/icons';
-import Link from 'next/link';
-import { useRouter } from 'next/router';
-import styled, { keyframes } from 'styled-components';
-import { authService } from '@/services/authService';
-import Cookies from 'js-cookie';
+import React, { useState } from "react";
+import { Form, Input, Button, Modal, message } from "antd";
+import {
+  UserOutlined,
+  LockOutlined,
+  MailOutlined,
+  KeyOutlined,
+} from "@ant-design/icons";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import styled, { keyframes } from "styled-components";
+import { authService } from "@/services/authService";
+import Cookies from "js-cookie";
+import Head from "next/head";
 
 const floatBlob = keyframes`
   0%, 100% { transform: translate(0px, 0px) scale(1); }
@@ -15,14 +21,19 @@ const floatBlob = keyframes`
 
 const PageContainer = styled.div`
   min-height: 100vh;
-  background: radial-gradient(circle at 50% -10%, #e0e7ff 0%, #f8fafc 45%, #f1f5f9 100%);
+  background: radial-gradient(
+    circle at 50% -10%,
+    #e0e7ff 0%,
+    #f8fafc 45%,
+    #f1f5f9 100%
+  );
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 20px;
   position: relative;
   overflow: hidden;
-  font-family: 'Prompt', -apple-system, sans-serif;
+  font-family: "Prompt", -apple-system, sans-serif;
 `;
 
 const AmbientBlob1 = styled.div`
@@ -31,7 +42,11 @@ const AmbientBlob1 = styled.div`
   right: 15%;
   width: 550px;
   height: 550px;
-  background: radial-gradient(circle, rgba(191, 219, 254, 0.5) 0%, rgba(255, 255, 255, 0) 70%);
+  background: radial-gradient(
+    circle,
+    rgba(191, 219, 254, 0.5) 0%,
+    rgba(255, 255, 255, 0) 70%
+  );
   border-radius: 50%;
   filter: blur(80px);
   animation: ${floatBlob} 14s infinite ease-in-out;
@@ -44,7 +59,11 @@ const AmbientBlob2 = styled.div`
   left: 10%;
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(254, 240, 138, 0.4) 0%, rgba(255, 255, 255, 0) 70%);
+  background: radial-gradient(
+    circle,
+    rgba(254, 240, 138, 0.4) 0%,
+    rgba(255, 255, 255, 0) 70%
+  );
   border-radius: 50%;
   filter: blur(90px);
   animation: ${floatBlob} 18s infinite ease-in-out reverse;
@@ -171,17 +190,17 @@ export default function Login() {
     setLoading(true);
     try {
       const res: any = await authService.login(values);
-      
-      Cookies.set('token', res.token, { expires: 7 });
-      Cookies.set('user_role', res.user.role, { expires: 7 });
-      localStorage.setItem('user', JSON.stringify(res.user));
 
-      message.success('เข้าสู่ระบบสำเร็จ');
-      if (res.user.role === 'admin') router.push('/dashboard/admin');
-      else if (res.user.role === 'teacher') router.push('/dashboard/teacher');
-      else router.push('/dashboard/student');
+      Cookies.set("token", res.token, { expires: 7 });
+      Cookies.set("user_role", res.user.role, { expires: 7 });
+      localStorage.setItem("user", JSON.stringify(res.user));
+
+      message.success("เข้าสู่ระบบสำเร็จ");
+      if (res.user.role === "admin") router.push("/dashboard/admin");
+      else if (res.user.role === "teacher") router.push("/dashboard/teacher");
+      else router.push("/dashboard/student");
     } catch (error: any) {
-      message.error(error.message || 'Username หรือ Password ไม่ถูกต้อง');
+      message.error(error.message || "Username หรือ Password ไม่ถูกต้อง");
     } finally {
       setLoading(false);
     }
@@ -191,100 +210,134 @@ export default function Login() {
     setForgotLoading(true);
     try {
       await authService.forgotPassword(values.email);
-      message.success('ส่งคำขอเรียบร้อยแล้ว');
+      message.success("ส่งคำขอเรียบร้อยแล้ว");
       setForgotModalVisible(false);
       forgotForm.resetFields();
     } catch (error: any) {
-      message.error(error.message || 'ไม่พบอีเมลนี้ในระบบ');
+      message.error(error.message || "ไม่พบอีเมลนี้ในระบบ");
     } finally {
       setForgotLoading(false);
     }
   };
 
   return (
-    <PageContainer>
-      <AmbientBlob1 />
-      <AmbientBlob2 />
-      <LoginCard>
-        <HeaderBox>
-          <LogoBox>W</LogoBox>
-          <BrandTitle>
-            WILL <span>Progression</span>
-          </BrandTitle>
-          <BrandSubtitle>
-            Mechatronics And Robotics Rayong Technical College <br />
-            โครงการ WIL แผนกวิชาเมคคาทรอนิกส์และหุ่นยนต์
-          </BrandSubtitle>
-        </HeaderBox>
+    <>
+      <Head>
+        <title>Mechatronics and Robotics</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link href="/logo/MechaLogo.png" rel="icon" />
+        <meta property="og:title" content="Mechatronics and Robotics" />
+      </Head>
+      <PageContainer>
+        <AmbientBlob1 />
+        <AmbientBlob2 />
+        <LoginCard>
+          <HeaderBox>
+            <LogoBox>W</LogoBox>
+            <BrandTitle>
+              WILL <span>Progression</span>
+            </BrandTitle>
+            <BrandSubtitle>
+              Mechatronics And Robotics Rayong Technical College <br />
+              โครงการ WIL แผนกวิชาเมคคาทรอนิกส์และหุ่นยนต์
+            </BrandSubtitle>
+          </HeaderBox>
 
-        <Form layout="vertical" onFinish={onLogin} requiredMark={false}>
-          <Form.Item
-            label="Username / อีเมล"
-            name="username"
-            rules={[{ required: true, message: 'กรุณากรอก Username หรือ อีเมล' }]}
-          >
-            <Input prefix={<UserOutlined style={{ color: '#0a192f' }} />} placeholder="66301234" size="large" />
-          </Form.Item>
+          <Form layout="vertical" onFinish={onLogin} requiredMark={false}>
+            <Form.Item
+              label="Username / อีเมล"
+              name="username"
+              rules={[
+                { required: true, message: "กรุณากรอก Username หรือ อีเมล" },
+              ]}
+            >
+              <Input
+                prefix={<UserOutlined style={{ color: "#0a192f" }} />}
+                placeholder="66301234"
+                size="large"
+              />
+            </Form.Item>
 
-          <Form.Item
-            label="รหัสผ่าน"
-            name="password"
-            rules={[{ required: true, message: 'กรุณากรอกรหัสผ่าน' }]}
-          >
-            <Input.Password prefix={<LockOutlined style={{ color: '#0a192f' }} />} placeholder="••••••••" size="large" />
-          </Form.Item>
+            <Form.Item
+              label="รหัสผ่าน"
+              name="password"
+              rules={[{ required: true, message: "กรุณากรอกรหัสผ่าน" }]}
+            >
+              <Input.Password
+                prefix={<LockOutlined style={{ color: "#0a192f" }} />}
+                placeholder="••••••••"
+                size="large"
+              />
+            </Form.Item>
 
-          <ForgotPasswordLink>
-            <a onClick={() => setForgotModalVisible(true)}>ลืมรหัสผ่าน?</a>
-          </ForgotPasswordLink>
+            <ForgotPasswordLink>
+              <a onClick={() => setForgotModalVisible(true)}>ลืมรหัสผ่าน?</a>
+            </ForgotPasswordLink>
 
-          <SubmitButton type="primary" htmlType="submit" loading={loading}>
-            เข้าสู่ระบบ
-          </SubmitButton>
-        </Form>
+            <SubmitButton type="primary" htmlType="submit" loading={loading}>
+              เข้าสู่ระบบ
+            </SubmitButton>
+          </Form>
 
-        <RegisterFooter>
-          ยังไม่มีบัญชี? <Link href="/register">ลงทะเบียนใช้งาน</Link>
-        </RegisterFooter>
-      </LoginCard>
+          <RegisterFooter>
+            ยังไม่มีบัญชี? <Link href="/register">ลงทะเบียนใช้งาน</Link>
+          </RegisterFooter>
+        </LoginCard>
 
-      <Modal
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#0a192f' }}>
-            <KeyOutlined style={{ color: '#c5a059' }} /> ลืมรหัสผ่าน
-          </div>
-        }
-        open={forgotModalVisible}
-        onCancel={() => setForgotModalVisible(false)}
-        footer={null}
-        centered
-      >
-        <p style={{ color: '#64748b', fontSize: 14, marginBottom: 20 }}>
-          กรอกอีเมลที่คุณใช้ลงทะเบียนเพื่อติดต่อขอตั้งรหัสผ่านใหม่
-        </p>
-        <Form form={forgotForm} layout="vertical" onFinish={onForgotPassword}>
-          <Form.Item
-            label="อีเมลของคุณ"
-            name="email"
-            rules={[
-              { required: true, message: 'กรุณากรอกอีเมล' },
-              { type: 'email', message: 'รูปแบบอีเมลไม่ถูกต้อง' },
-            ]}
-          >
-            <Input prefix={<MailOutlined />} placeholder="student@rayongtech.ac.th" size="large" />
-          </Form.Item>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={forgotLoading}
-            block
-            size="large"
-            style={{ borderRadius: 12, background: '#0a192f', border: '1px solid #d4af37', height: 46 }}
-          >
-            ส่งคำขอตั้งรหัสผ่านใหม่
-          </Button>
-        </Form>
-      </Modal>
-    </PageContainer>
+        <Modal
+          title={
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                color: "#0a192f",
+              }}
+            >
+              <KeyOutlined style={{ color: "#c5a059" }} /> ลืมรหัสผ่าน
+            </div>
+          }
+          open={forgotModalVisible}
+          onCancel={() => setForgotModalVisible(false)}
+          footer={null}
+          centered
+        >
+          <p style={{ color: "#64748b", fontSize: 14, marginBottom: 20 }}>
+            กรอกอีเมลที่คุณใช้ลงทะเบียนเพื่อติดต่อขอตั้งรหัสผ่านใหม่
+          </p>
+          <Form form={forgotForm} layout="vertical" onFinish={onForgotPassword}>
+            <Form.Item
+              label="อีเมลของคุณ"
+              name="email"
+              rules={[
+                { required: true, message: "กรุณากรอกอีเมล" },
+                { type: "email", message: "รูปแบบอีเมลไม่ถูกต้อง" },
+              ]}
+            >
+              <Input
+                prefix={<MailOutlined />}
+                placeholder="student@rayongtech.ac.th"
+                size="large"
+              />
+            </Form.Item>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={forgotLoading}
+              block
+              size="large"
+              style={{
+                borderRadius: 12,
+                background: "#0a192f",
+                border: "1px solid #d4af37",
+                height: 46,
+              }}
+            >
+              ส่งคำขอตั้งรหัสผ่านใหม่
+            </Button>
+          </Form>
+        </Modal>
+      </PageContainer>
+    </>
   );
 }
