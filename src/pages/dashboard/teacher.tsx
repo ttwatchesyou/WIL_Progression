@@ -19,6 +19,8 @@ import {
   Empty,
   DatePicker,
   Radio,
+  Progress,
+  Space,
 } from "antd";
 import {
   CheckCircleOutlined,
@@ -33,6 +35,13 @@ import {
   CalendarOutlined,
   SaveOutlined,
   UserOutlined,
+  BuildOutlined,
+  ThunderboltOutlined,
+  SettingOutlined,
+  CrownOutlined,
+  StarFilled,
+  CameraOutlined,
+  CloseCircleOutlined,
 } from "@ant-design/icons";
 import MainLayout from "@/components/MainLayout";
 import styled from "styled-components";
@@ -45,10 +54,16 @@ import { apiClient } from "@/services/apiClient";
 import dayjs from "dayjs";
 import Head from "next/head";
 
+// ---------------------------------------------------------
+// 💎 STYLED COMPONENTS (RESPONSIVE & TOUCH-SCROLLABLE)
+// ---------------------------------------------------------
+
 const DashboardContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 20px;
+  font-family: "Prompt", sans-serif;
+  width: 100%;
 `;
 
 const WelcomeBanner = styled.div`
@@ -66,7 +81,7 @@ const WelcomeBanner = styled.div`
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: stretch;
-    padding: 20px 16px;
+    padding: 18px 16px;
   }
 `;
 
@@ -87,11 +102,12 @@ const BannerMetaText = styled.p`
   margin: 4px 0 0 0;
 `;
 
+// 🧱 การ์ดสรุปสถิติ (ปรับขนาดอัตโนมัติตามหน้าจอ ป้องกันข้อความถูกตัด)
 const StatCard = styled.div`
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(20px) saturate(180%);
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.95);
   padding: 16px;
   display: flex;
   align-items: center;
@@ -99,15 +115,16 @@ const StatCard = styled.div`
   height: 100%;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.03);
 
-  @media (max-width: 375px) {
-    padding: 12px;
+  @media (max-width: 576px) {
+    padding: 12px 10px;
     gap: 8px;
+    border-radius: 14px;
   }
 `;
 
 const StatIconBox = styled.div<{ $color?: string; $bg?: string }>`
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
   background: ${(props) => props.$bg || "rgba(10, 25, 47, 0.08)"};
   color: ${(props) => props.$color || "#0a192f"};
@@ -116,40 +133,85 @@ const StatIconBox = styled.div<{ $color?: string; $bg?: string }>`
   align-items: center;
   font-size: 20px;
   flex-shrink: 0;
+
+  @media (max-width: 576px) {
+    width: 36px;
+    height: 36px;
+    font-size: 17px;
+    border-radius: 10px;
+  }
 `;
 
 const StatInfo = styled.div`
   display: flex;
   flex-direction: column;
   min-width: 0;
+  overflow: hidden;
 `;
 
 const StatValue = styled.span`
-  font-size: clamp(1.1rem, 3.5vw, 1.35rem);
-  font-weight: 700;
+  font-size: clamp(1.1rem, 3.5vw, 1.4rem);
+  font-weight: 800;
   color: #0f172a;
-  line-height: 1.2;
+  line-height: 1.1;
 `;
 
 const StatLabel = styled.span`
-  font-size: 0.75rem;
+  font-size: clamp(0.68rem, 2.2vw, 0.8rem);
   color: #64748b;
   margin-top: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-weight: 600;
+  line-height: 1.2;
+  word-break: break-word;
 `;
 
 const ContentPanel = styled.div`
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(25px) saturate(180%);
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  padding: 20px 24px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.03);
+  width: 100%;
+  overflow: hidden;
 
   @media (max-width: 576px) {
-    padding: 16px 12px;
+    padding: 14px 10px;
+    border-radius: 16px;
+  }
+`;
+
+// 📱 แถบ Tabs ที่เปิดสิทธิ์ให้ใช้นิ้วปัดเลื่อนซ้าย-ขวาบนมือถือได้
+const ScrollableTabs = styled(Tabs)`
+  width: 100%;
+
+  .ant-tabs-nav {
+    margin-bottom: 16px !important;
+    max-width: 100%;
+
+    .ant-tabs-nav-wrap {
+      overflow-x: auto !important;
+      scrollbar-width: none; /* Firefox */
+      &::-webkit-scrollbar {
+        display: none; /* Chrome/Safari */
+      }
+    }
+
+    .ant-tabs-nav-list {
+      display: flex;
+      flex-wrap: nowrap !important;
+    }
+
+    .ant-tabs-tab {
+      padding: 10px 16px !important;
+      white-space: nowrap !important;
+      font-weight: 700 !important;
+
+      @media (max-width: 576px) {
+        padding: 8px 12px !important;
+        font-size: 0.85rem !important;
+      }
+    }
   }
 `;
 
@@ -173,73 +235,87 @@ const StyledTable = styled(Table)`
   .ant-table-thead > tr > th {
     background: rgba(10, 25, 47, 0.04) !important;
     color: #0f172a !important;
-    font-weight: 600 !important;
-    padding: 10px 12px !important;
+    font-weight: 700 !important;
+    padding: 12px 14px !important;
   }
   .ant-table-tbody > tr > td {
-    padding: 10px 12px !important;
+    padding: 12px 14px !important;
   }
 `;
 
-// 📱 สไตล์พิเศษสำหรับการ์ดเช็คชื่อบนมือถือ
-const DesktopTableView = styled.div`
-  @media (max-width: 768px) {
-    display: none;
-  }
-`;
-
-const MobileCardView = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-
-  @media (min-width: 769px) {
-    display: none;
-  }
-`;
-
-const MobileStudentCard = styled.div`
+const StudentGlassCard = styled.div<{ $isPending?: boolean }>`
   background: rgba(255, 255, 255, 0.95);
-  border-radius: 16px;
-  border: 1px solid rgba(212, 175, 55, 0.3);
-  padding: 14px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-`;
+  backdrop-filter: blur(20px);
+  border-radius: 18px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  padding: 20px;
+  position: relative;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
 
-const StudentHeaderRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const StudentNameText = styled.span`
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: #0f172a;
-`;
-
-const StudentMetaTag = styled.span`
-  font-size: 0.78rem;
-  color: #64748b;
-`;
-
-const TouchRadioGroup = styled(Radio.Group)`
-  width: 100%;
-  display: flex !important;
-
-  .ant-radio-button-wrapper {
-    flex: 1;
-    text-align: center;
-    height: 40px !important;
-    line-height: 38px !important;
-    font-weight: 600;
-    font-size: 0.85rem;
-    padding: 0 4px !important;
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 14px 28px rgba(10, 25, 47, 0.12);
+    border-color: #d4af37;
   }
 `;
+
+const PendingBadge = styled.div<{ $count: number }>`
+  position: absolute;
+  top: -10px;
+  right: -8px;
+  background: ${(props) =>
+    props.$count > 0
+      ? "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)"
+      : "linear-gradient(135deg, #10b981 0%, #047857 100%)"};
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+`;
+
+const StudentAvatarBox = styled.div`
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #0a192f 0%, #1e3a8a 100%);
+  color: #d4af37;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  box-shadow: 0 4px 12px rgba(10, 25, 47, 0.15);
+`;
+
+const ProfileHeaderBox = styled.div`
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 18px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  @media (max-width: 576px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+`;
+
+const safeExtractArray = (res: any): any[] => {
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res?.data)) return res.data;
+  if (Array.isArray(res?.data?.data)) return res.data.data;
+  return [];
+};
 
 export default function TeacherDashboard() {
   const [loading, setLoading] = useState(true);
@@ -248,7 +324,20 @@ export default function TeacherDashboard() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
   const [promotions, setPromotions] = useState<any[]>([]);
+  const [skillsList, setSkillsList] = useState<any[]>([]);
 
+  // State โปรไฟล์นักเรียนรายบุคคล
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [studentTasks, setStudentTasks] = useState<any[]>([]);
+  const [studentSkills, setStudentSkills] = useState<any[]>([]);
+  const [studentReports, setStudentReports] = useState<any[]>([]);
+  const [studentPromotions, setStudentPromotions] = useState<any[]>([]);
+
+  const [bonusPoints, setBonusPoints] = useState<number>(5);
+  const [selectedBonusSkill, setSelectedBonusSkill] = useState<any>(null);
+  const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
+
+  // State เช็คชื่อ
   const [attendanceDate, setAttendanceDate] = useState<dayjs.Dayjs>(dayjs());
   const [selectedClassroom, setSelectedClassroom] = useState<string>("all");
   const [attendanceMap, setAttendanceMap] = useState<{
@@ -256,37 +345,35 @@ export default function TeacherDashboard() {
   }>({});
   const [savingAttendance, setSavingAttendance] = useState(false);
 
+  // Modals
   const [createTaskModal, setCreateTaskModal] = useState(false);
-  const [promotionModal, setPromotionModal] = useState(false);
+  const [createSkillModal, setCreateSkillModal] = useState(false);
 
   const [taskForm] = Form.useForm();
   const [promotionForm] = Form.useForm();
+  const [skillForm] = Form.useForm();
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [studentsRes, tasksRes, reportsRes, promoRes]: any =
+      const [studentsRes, tasksRes, reportsRes, promoRes, skillsRes]: any =
         await Promise.all([
           teacherService.getStudents(),
           teacherService.getAllTasks(),
           teacherService.getReports(),
           apiClient.get("/promotions"),
+          apiClient.get("/skills"),
         ]);
 
-      if (studentsRes?.data) {
-        setStudents(studentsRes.data);
-        const initialMap: {
-          [key: number]: "present" | "late" | "absent" | "leave";
-        } = {};
-        studentsRes.data.forEach((s: any) => {
-          initialMap[s.id] = "present";
-        });
-        setAttendanceMap(initialMap);
+      const extractedStudents = safeExtractArray(studentsRes);
+      if (extractedStudents.length > 0) {
+        setStudents(extractedStudents);
       }
 
-      if (tasksRes?.data) setTasks(tasksRes.data);
-      if (reportsRes?.data) setReports(reportsRes.data);
-      if (promoRes?.data) setPromotions(promoRes.data);
+      setTasks(safeExtractArray(tasksRes));
+      setReports(safeExtractArray(reportsRes));
+      setPromotions(safeExtractArray(promoRes));
+      setSkillsList(safeExtractArray(skillsRes));
     } catch (error: any) {
       console.error("Error fetching teacher dashboard data:", error);
     } finally {
@@ -301,13 +388,18 @@ export default function TeacherDashboard() {
         date: formattedDate,
       });
 
-      if (res?.data && res.data.length > 0) {
-        const existingMap: { [key: number]: any } = { ...attendanceMap };
-        res.data.forEach((item: any) => {
-          existingMap[item.student_id] = item.status;
-        });
-        setAttendanceMap(existingMap);
-      }
+      const extracted = safeExtractArray(res);
+      const existingMap: { [key: number]: any } = {};
+
+      students.forEach((s) => {
+        existingMap[s.id] = "absent";
+      });
+
+      extracted.forEach((item: any) => {
+        existingMap[item.student_id] = item.status;
+      });
+
+      setAttendanceMap(existingMap);
     } catch (e) {
       console.error("Error loading attendance", e);
     }
@@ -327,7 +419,35 @@ export default function TeacherDashboard() {
     if (students.length > 0) {
       loadExistingAttendance();
     }
-  }, [attendanceDate]);
+  }, [attendanceDate, students]);
+
+  const handleOpenStudentDetail = async (student: any) => {
+    setSelectedStudent(student);
+
+    const filteredTasks = tasks.filter(
+      (t) => t.student_id === student.id || !t.student_id
+    );
+    setStudentTasks(filteredTasks);
+
+    const filteredReports = reports.filter(
+      (r) => r.user_id === student.id || r.student_id === student.id
+    );
+    setStudentReports(filteredReports);
+
+    const filteredPromotions = promotions.filter(
+      (p) => p.student_id === student.id
+    );
+    setStudentPromotions(filteredPromotions);
+
+    try {
+      const resSkills = await apiClient.get(`/student-skills/${student.id}`);
+      setStudentSkills(safeExtractArray(resSkills));
+    } catch {
+      setStudentSkills([]);
+    }
+
+    setIsStudentModalOpen(true);
+  };
 
   const handleAttendanceChange = (
     studentId: number,
@@ -352,17 +472,17 @@ export default function TeacherDashboard() {
       const formattedDate = attendanceDate.format("YYYY-MM-DD");
       const records: AttendanceRecord[] = filteredStudents.map((s) => ({
         student_id: s.id,
-        status: attendanceMap[s.id] || "present",
+        status: attendanceMap[s.id] || "absent",
       }));
 
       await attendanceService.saveAttendance(formattedDate, records);
       message.success(
-        `บันทึกการเช็คชื่อวันที่ ${attendanceDate.format(
+        `บันทึกการปรับสถานะเช็คชื่อวันที่ ${attendanceDate.format(
           "DD/MM/YYYY"
         )} เรียบร้อยแล้ว`
       );
     } catch (error: any) {
-      message.error(error.message || "เกิดข้อผิดพลาดในการบันทึกเช็คชื่อ");
+      message.error(error.message || "เกิดข้อผิดพลาดในการปรับสถานะ");
     } finally {
       setSavingAttendance(false);
     }
@@ -380,8 +500,9 @@ export default function TeacherDashboard() {
         step,
         status,
       });
-      message.success("อนุมัติงานเรียบร้อยแล้ว");
+      message.success("อนุมัติงานและคำนวณแต้มทักษะเรียบร้อย!");
       loadData();
+      setIsStudentModalOpen(false);
     } catch (error: any) {
       message.error(error.message || "เกิดข้อผิดพลาดในการอนุมัติ");
     }
@@ -396,11 +517,10 @@ export default function TeacherDashboard() {
         title: values.title,
         description: values.description,
         target_skill: values.target_skill,
-        points: values.points,
-      });
-      message.success(
-        `สั่งงานแก่นักเรียน ${values.student_ids.length} คนเรียบร้อยแล้ว!`
-      );
+        skill_id: values.skill_id || null,
+        points: values.points || 10,
+      } as any);
+      message.success("สั่งงานแก่นักเรียนเรียบร้อยแล้ว!");
       setCreateTaskModal(false);
       taskForm.resetFields();
       loadData();
@@ -409,26 +529,70 @@ export default function TeacherDashboard() {
     }
   };
 
-  const handleSendPromotion = async (values: any) => {
+  const handleCreateSkill = async (values: any) => {
     try {
-      await apiClient.post("/teacher/promotions", values);
-      message.success("ส่งเรื่องเสนอเลื่อนขั้นนักเรียนถึงแอดมินเรียบร้อยแล้ว!");
-      setPromotionModal(false);
+      await apiClient.post("/skills", values);
+      message.success(`สร้างทักษะ "${values.name}" สำเร็จ!`);
+      setCreateSkillModal(false);
+      skillForm.resetFields();
+      loadData();
+    } catch (error: any) {
+      message.error(error.message || "ไม่สามารถสร้างทักษะได้");
+    }
+  };
+
+  const handleGiveBonusPoints = async (taskId?: number) => {
+    try {
+      if (taskId) {
+        await handleApprove(taskId, "step2_grade", "approved");
+      } else {
+        await apiClient.post(
+          `/students/${selectedStudent.id}/bonus-points`,
+          {
+            points: bonusPoints,
+            skill_id: selectedBonusSkill,
+          }
+        );
+        message.success(
+          `มอบคะแนนพิเศษ +${bonusPoints} EXP ให้ ${selectedStudent.first_name} เรียบร้อยแล้ว!`
+        );
+      }
+      loadData();
+      setIsStudentModalOpen(false);
+    } catch (error: any) {
+      message.error("เกิดข้อผิดพลาดในการมอบคะแนน");
+    }
+  };
+
+  const handleSendPromotionFromModal = async (values: any) => {
+    try {
+      await apiClient.post("/teacher/promotions", {
+        student_id: selectedStudent.id,
+        target_rank: values.target_rank,
+        reason: values.reason,
+      });
+      message.success(
+        `เสนอเรื่องเลื่อนขั้นให้ ${selectedStudent.first_name} ถึงแอดมินแล้ว!`
+      );
       promotionForm.resetFields();
       loadData();
+      setIsStudentModalOpen(false);
     } catch (error: any) {
       message.error(error.message || "เกิดข้อผิดพลาดในการเสนอเลื่อนขั้น");
     }
   };
 
   const pendingStep1Count = tasks.filter((t) => t.status === "pending").length;
-  const pendingStep2Count = tasks.filter(
-    (t) => t.status === "submitted"
-  ).length;
+  const pendingStep2Count = tasks.filter((t) => t.status === "submitted").length;
 
   const classroomsList = Array.from(
     new Set(students.map((s) => s.classroom).filter(Boolean))
   );
+
+  const displayStudents =
+    selectedClassroom === "all"
+      ? students
+      : students.filter((s) => s.classroom === selectedClassroom);
 
   const attendanceColumns = [
     {
@@ -454,11 +618,35 @@ export default function TeacherDashboard() {
       render: (cls: string) => <Tag color="blue">{cls || "ทั่วไป"}</Tag>,
     },
     {
-      title: "เช็คชื่อ",
+      title: "การอัปโหลดเช็คชื่อ",
+      key: "journal_check",
+      render: (_: any, record: any) => {
+        const isPresent = attendanceMap[record.id] === "present";
+        return isPresent ? (
+          <Tag
+            color="green"
+            icon={<CameraOutlined />}
+            style={{ borderRadius: 8, padding: "4px 10px", fontWeight: 700 }}
+          >
+            อัปรูป/วิดีโอ เช็คชื่อแล้ว ✨
+          </Tag>
+        ) : (
+          <Tag
+            color="default"
+            icon={<CloseCircleOutlined />}
+            style={{ borderRadius: 8, padding: "4px 10px", color: "#64748b" }}
+          >
+            ยังไม่อัปโหลด
+          </Tag>
+        );
+      },
+    },
+    {
+      title: "ปรับแก้ไขสถานะ (กรณีฉุกเฉิน/ลา)",
       key: "attendance_status",
       render: (_: any, record: any) => (
         <Radio.Group
-          value={attendanceMap[record.id] || "present"}
+          value={attendanceMap[record.id] || "absent"}
           onChange={(e) => handleAttendanceChange(record.id, e.target.value)}
           optionType="button"
           buttonStyle="solid"
@@ -467,8 +655,7 @@ export default function TeacherDashboard() {
           <Radio.Button
             value="present"
             style={{
-              color:
-                attendanceMap[record.id] === "present" ? "#fff" : "#059669",
+              color: attendanceMap[record.id] === "present" ? "#fff" : "#059669",
             }}
           >
             มา
@@ -488,9 +675,9 @@ export default function TeacherDashboard() {
       key: "title",
       render: (text: string, record: any) => (
         <div>
-          <span style={{ fontWeight: 600, color: "#0f172a" }}>{text}</span>
+          <span style={{ fontWeight: 700, color: "#0f172a" }}>{text}</span>
           {record.description && (
-            <div style={{ fontSize: "0.78rem", color: "#64748b" }}>
+            <div style={{ fontSize: "0.8rem", color: "#64748b", marginTop: 2 }}>
               {record.description}
             </div>
           )}
@@ -508,7 +695,7 @@ export default function TeacherDashboard() {
             {student.first_name} {student.last_name}
           </Tag>
         ) : (
-          <Tag color="blue">ID: {id}</Tag>
+          <Tag color="blue">ทุกคน / ID: {id || "ทั้งห้อง"}</Tag>
         );
       },
     },
@@ -516,14 +703,14 @@ export default function TeacherDashboard() {
       title: "ทักษะเป้าหมาย",
       dataIndex: "target_skill",
       key: "target_skill",
-      render: (skill: string) => <Tag color="gold">{skill}</Tag>,
+      render: (skill: string) => <Tag color="gold">{skill || "ทักษะวิชาชีพ"}</Tag>,
     },
     {
       title: "คะแนน",
       dataIndex: "points",
       key: "points",
       render: (pts: number) => (
-        <span style={{ color: "#059669", fontWeight: 600 }}>+{pts} EXP</span>
+        <span style={{ color: "#059669", fontWeight: 700 }}>+{pts || 10} EXP</span>
       ),
     },
     {
@@ -531,10 +718,8 @@ export default function TeacherDashboard() {
       dataIndex: "status",
       key: "status",
       render: (status: string) => {
-        if (status === "completed")
-          return <Tag color="success">เสร็จสมบูรณ์</Tag>;
-        if (status === "submitted")
-          return <Tag color="processing">รอตรวจ Step 2</Tag>;
+        if (status === "completed") return <Tag color="success">เสร็จสมบูรณ์</Tag>;
+        if (status === "submitted") return <Tag color="processing">รอตรวจ Step 2</Tag>;
         if (status === "in_progress") return <Tag color="cyan">กำลังทำ</Tag>;
         if (status === "rejected") return <Tag color="error">ปฏิเสธ</Tag>;
         return <Tag color="warning">รออนุมัติ Step 1</Tag>;
@@ -550,12 +735,10 @@ export default function TeacherDashboard() {
               type="primary"
               size="small"
               icon={<CheckOutlined />}
-              style={{ background: "#0a192f", border: "1px solid #d4af37" }}
-              onClick={() =>
-                handleApprove(record.id, "step1_assign", "approved")
-              }
+              style={{ background: "#0a192f", border: "1px solid #d4af37", borderRadius: 8 }}
+              onClick={() => handleApprove(record.id, "step1_assign", "approved")}
             >
-              อนุมัติ Step 1
+              Step 1
             </Button>
           );
         }
@@ -565,12 +748,10 @@ export default function TeacherDashboard() {
               type="primary"
               size="small"
               icon={<CheckCircleOutlined />}
-              style={{ background: "#059669", border: "none" }}
-              onClick={() =>
-                handleApprove(record.id, "step2_grade", "approved")
-              }
+              style={{ background: "#059669", border: "none", borderRadius: 8 }}
+              onClick={() => handleApprove(record.id, "step2_grade", "approved")}
             >
-              ให้คะแนน Step 2
+              Step 2
             </Button>
           );
         }
@@ -587,7 +768,7 @@ export default function TeacherDashboard() {
       render: (_: any, record: any) => (
         <div>
           <span style={{ fontWeight: 600, color: "#0f172a" }}>
-            {record.student_first_name} {record.student_last_name}
+            {record.first_name || record.student_first_name} {record.last_name || record.student_last_name}
           </span>
           <div style={{ fontSize: 12, color: "#64748b" }}>
             รหัส: {record.student_code} ({record.classroom})
@@ -600,8 +781,8 @@ export default function TeacherDashboard() {
       key: "rank_change",
       render: (_: any, record: any) => (
         <span>
-          <Tag color="blue">Lv.{record.current_rank}</Tag> ➔{" "}
-          <Tag color="gold">Lv.{record.proposed_rank}</Tag>
+          <Tag color="blue">Lv.{record.rank_level || record.current_rank || 1}</Tag> ➔{" "}
+          <Tag color="gold">Lv.{record.target_rank || record.proposed_rank || 2}</Tag>
         </span>
       ),
     },
@@ -615,26 +796,19 @@ export default function TeacherDashboard() {
       dataIndex: "status",
       key: "status",
       render: (status: string) => {
-        if (status === "approved")
-          return <Tag color="success">อนุมัติแล้ว</Tag>;
+        if (status === "approved") return <Tag color="success">อนุมัติแล้ว</Tag>;
         if (status === "rejected") return <Tag color="error">ปฏิเสธ</Tag>;
         return <Tag color="warning">รอแอดมิน</Tag>;
       },
     },
   ];
 
-  const displayStudents =
-    selectedClassroom === "all"
-      ? students
-      : students.filter((s) => s.classroom === selectedClassroom);
-
   return (
     <>
       <Head>
-        <title>Mechatronics and Robotics</title>
+        <title>Mechatronics and Robotics - Teacher Dashboard</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link href="/logo/MechaLogo.png" rel="icon" />
-        <meta property="og:title" content="Mechatronics and Robotics" />
       </Head>
       <MainLayout
         userName={
@@ -651,32 +825,31 @@ export default function TeacherDashboard() {
           </div>
         ) : (
           <DashboardContainer>
+            {/* Banner หลัก */}
             <WelcomeBanner>
               <div>
                 <GreetingTitle>
-                  สวัสดีอาจารย์,{" "}
-                  <span>{currentUser?.first_name || "ผู้สอน"}</span> 👨‍🏫
+                  สวัสดีอาจารย์, <span>{currentUser?.first_name || "ผู้สอน"}</span> 👨‍🏫
                 </GreetingTitle>
                 <BannerMetaText>
-                  ระบบอนุมัติและประเมินผลการเรียนรู้เชิงบูรณาการกับการทำงาน (WIL
-                  Management)
+                  ระบบอนุมัติและประเมินผลการเรียนรู้เชิงบูรณาการกับการทำงาน (WIL Management)
                 </BannerMetaText>
               </div>
               <ActionButtonGroup>
                 <Button
                   type="default"
                   size="large"
-                  icon={<TrophyOutlined style={{ color: "#d4af37" }} />}
+                  icon={<SettingOutlined style={{ color: "#ffffff" }} />}
                   style={{
-                    background: "rgba(255,255,255,0.15)",
+                    background: "rgba(255,255,255,0.12)",
                     color: "#fff",
-                    border: "1px solid #d4af37",
+                    border: "1px solid rgba(255,255,255,0.3)",
                     fontWeight: 600,
                     borderRadius: 12,
                   }}
-                  onClick={() => setPromotionModal(true)}
+                  onClick={() => setCreateSkillModal(true)}
                 >
-                  เสนอเลื่อนขั้น
+                  + เพิ่มทักษะ
                 </Button>
                 <Button
                   type="primary"
@@ -696,6 +869,7 @@ export default function TeacherDashboard() {
               </ActionButtonGroup>
             </WelcomeBanner>
 
+            {/* Stat Cards (ปรับแต่งให้อ่านง่าย ข้อความไม่ขาด) */}
             <Row gutter={[12, 12]}>
               <Col xs={12} sm={12} md={6}>
                 <StatCard>
@@ -746,20 +920,201 @@ export default function TeacherDashboard() {
               </Col>
             </Row>
 
+            {/* Content Panel (ใช้ ScrollableTabs เลื่อนซ้าย-ขวาบนมือถือได้ลื่นไหล) */}
             <ContentPanel>
-              <Tabs
+              <ScrollableTabs
                 defaultActiveKey="1"
                 items={[
+                  // TAB 1: การ์ดนักเรียนรายบุคคล
                   {
                     key: "1",
                     label: (
                       <span>
-                        <CalendarOutlined /> เช็คชื่อ (Attendance)
+                        <UserOutlined /> รายชื่อนักเรียน ({displayStudents.length})
                       </span>
                     ),
                     children: (
-                      <div>
-                        {/* Control Header */}
+                      <div style={{ paddingTop: 8 }}>
+                        {displayStudents.length === 0 ? (
+                          <Empty description="ไม่พบรายชื่อนักเรียนในระบบ" />
+                        ) : (
+                          <Row gutter={[16, 16]}>
+                            {displayStudents.map((student) => {
+                              const pendingCount = tasks.filter(
+                                (t) =>
+                                  (t.student_id === student.id || !t.student_id) &&
+                                  t.status !== "completed"
+                              ).length;
+
+                              return (
+                                <Col xs={24} sm={12} md={8} lg={6} key={student.id}>
+                                  <StudentGlassCard
+                                    onClick={() => handleOpenStudentDetail(student)}
+                                    $isPending={pendingCount > 0}
+                                  >
+                                    <PendingBadge $count={pendingCount}>
+                                      {pendingCount > 0
+                                        ? `งานค้าง ${pendingCount}`
+                                        : "ครบถ้วน ✨"}
+                                    </PendingBadge>
+
+                                    <StudentAvatarBox>
+                                      <UserOutlined />
+                                    </StudentAvatarBox>
+
+                                    <div
+                                      style={{
+                                        fontWeight: 700,
+                                        fontSize: "1.05rem",
+                                        color: "#0f172a",
+                                      }}
+                                    >
+                                      {student.first_name} {student.last_name}
+                                    </div>
+                                    <div
+                                      style={{
+                                        fontSize: "0.82rem",
+                                        color: "#64748b",
+                                        marginTop: 2,
+                                        marginBottom: 12,
+                                      }}
+                                    >
+                                      รหัส: {student.student_code || student.username} | ห้อง: {student.classroom || "ทั่วไป"}
+                                    </div>
+
+                                    <Space wrap size={8}>
+                                      <Tag
+                                        color="gold"
+                                        icon={<CrownOutlined />}
+                                        style={{ borderRadius: 8, fontWeight: 700 }}
+                                      >
+                                        Rank Lv.{student.rank_level || 1}
+                                      </Tag>
+                                      <Tag
+                                        color="blue"
+                                        style={{ borderRadius: 8, fontWeight: 700 }}
+                                      >
+                                        {student.total_exp || 0} EXP
+                                      </Tag>
+                                    </Space>
+                                  </StudentGlassCard>
+                                </Col>
+                              );
+                            })}
+                          </Row>
+                        )}
+                      </div>
+                    ),
+                  },
+                  // TAB 2: ตรวจงานรวม
+                  {
+                    key: "2",
+                    label: (
+                      <span>
+                        <CheckCircleOutlined /> ตรวจงานค้าง ({pendingStep1Count + pendingStep2Count})
+                      </span>
+                    ),
+                    children: (
+                      <div style={{ paddingTop: 8 }}>
+                        <StyledTable
+                          dataSource={tasks}
+                          columns={taskColumns}
+                          rowKey="id"
+                          pagination={{ pageSize: 8 }}
+                          scroll={{ x: 600 }}
+                        />
+                      </div>
+                    ),
+                  },
+                  // TAB 3: รายงาน Journal
+                  {
+                    key: "3",
+                    label: (
+                      <span>
+                        <ReadOutlined /> รายงาน Journal
+                      </span>
+                    ),
+                    children: (
+                      <div style={{ paddingTop: 8 }}>
+                        <Row gutter={[16, 16]}>
+                          {reports.length === 0 ? (
+                            <Col span={24}>
+                              <Empty description="ยังไม่มีการส่งรายงานประจำวัน" />
+                            </Col>
+                          ) : (
+                            reports.map((item: any) => {
+                              let files: string[] = [];
+                              try {
+                                files = item.image_url ? JSON.parse(item.image_url) : [];
+                              } catch {
+                                if (item.image_url) files = [item.image_url];
+                              }
+
+                              return (
+                                <Col xs={24} sm={12} md={8} key={item.id}>
+                                  <Card
+                                    size="small"
+                                    style={{
+                                      borderRadius: 16,
+                                      border: "1px solid rgba(212, 175, 55, 0.35)",
+                                      background: "rgba(255,255,255,0.95)",
+                                    }}
+                                  >
+                                    <div style={{ fontWeight: 700, color: "#0a192f" }}>
+                                      {item.first_name} {item.last_name} ({item.student_code})
+                                    </div>
+                                    <div style={{ fontSize: 11, color: "#64748b", margin: "2px 0 6px 0" }}>
+                                      📅 วันที่ส่ง: {item.report_date}
+                                    </div>
+                                    <p style={{ fontSize: 12.5, color: "#334155", margin: "0 0 8px 0" }}>
+                                      {item.details || "ไม่มีข้อความอธิบาย"}
+                                    </p>
+
+                                    {files.length > 0 && (
+                                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                        {files.map((fileUrl, idx) => {
+                                          const isVideo = fileUrl.match(/\.(mp4|mov|avi|webm|mkv)$/i);
+                                          const fullUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}${fileUrl}`;
+                                          
+                                          return isVideo ? (
+                                            <video 
+                                              key={idx} 
+                                              src={fullUrl} 
+                                              controls 
+                                              style={{ width: 120, height: 80, borderRadius: 8, objectFit: "cover" }} 
+                                            />
+                                          ) : (
+                                            <Image
+                                              key={idx}
+                                              width={60}
+                                              height={60}
+                                              style={{ objectFit: "cover", borderRadius: 8 }}
+                                              src={fullUrl}
+                                              alt="รูปปฏิบัติงาน"
+                                            />
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </Card>
+                                </Col>
+                              );
+                            })
+                          )}
+                        </Row>
+                      </div>
+                    ),
+                  },
+                  // TAB 4: ตรวจสอบการเข้าเรียน
+                  {
+                    key: "4",
+                    label: (
+                      <span>
+                        <CalendarOutlined /> ตรวจสอบการเข้าเรียน (Attendance)
+                      </span>
+                    ),
+                    children: (
+                      <div style={{ paddingTop: 8 }}>
                         <div
                           style={{
                             display: "flex",
@@ -777,7 +1132,7 @@ export default function TeacherDashboard() {
                               flexWrap: "wrap",
                               alignItems: "center",
                               width: "100%",
-                              maxWidth: 400,
+                              maxWidth: 450,
                             }}
                           >
                             <DatePicker
@@ -785,17 +1140,15 @@ export default function TeacherDashboard() {
                               onChange={(d) => d && setAttendanceDate(d)}
                               format="DD/MM/YYYY"
                               size="middle"
-                              style={{ flex: 1 }}
+                              style={{ flex: 1, height: 38 }}
                             />
                             <Select
                               value={selectedClassroom}
                               onChange={(val) => setSelectedClassroom(val)}
                               size="middle"
-                              style={{ flex: 1, minWidth: 120 }}
+                              style={{ flex: 1, minWidth: 120, height: 38 }}
                             >
-                              <Select.Option value="all">
-                                ทุกห้องเรียน
-                              </Select.Option>
+                              <Select.Option value="all">ทุกห้องเรียน</Select.Option>
                               {classroomsList.map((cls) => (
                                 <Select.Option key={cls} value={cls}>
                                   {cls}
@@ -813,393 +1166,408 @@ export default function TeacherDashboard() {
                               background: "#0a192f",
                               border: "1px solid #d4af37",
                               borderRadius: 10,
+                              height: 38,
+                              fontWeight: 600,
                             }}
-                            block={window.innerWidth <= 768}
                             onClick={handleSaveAttendance}
                           >
-                            บันทึกเช็คชื่อ ({displayStudents.length} คน)
+                            บันทึกเช็คชื่อ
                           </Button>
                         </div>
 
-                        {/* 🖥️ View สำหรับจอคอม/แท็บเล็ต */}
-                        <DesktopTableView>
-                          <StyledTable
-                            dataSource={displayStudents}
-                            columns={attendanceColumns}
-                            rowKey="id"
-                            pagination={{ pageSize: 10 }}
-                          />
-                        </DesktopTableView>
-
-                        {/* 📱 View สำหรับจอมือถือ (Mobile Touch Cards) */}
-                        <MobileCardView>
-                          {displayStudents.length === 0 ? (
-                            <Empty description="ไม่พบรายชื่อนักเรียน" />
-                          ) : (
-                            displayStudents.map((student) => (
-                              <MobileStudentCard key={student.id}>
-                                <StudentHeaderRow>
-                                  <StudentNameText>
-                                    {student.first_name} {student.last_name}
-                                  </StudentNameText>
-                                  <Tag color="blue">
-                                    {student.classroom || "ทั่วไป"}
-                                  </Tag>
-                                </StudentHeaderRow>
-
-                                <StudentMetaTag>
-                                  รหัสนักศึกษา:{" "}
-                                  {student.student_code || student.username}
-                                </StudentMetaTag>
-
-                                <TouchRadioGroup
-                                  value={attendanceMap[student.id] || "present"}
-                                  onChange={(e) =>
-                                    handleAttendanceChange(
-                                      student.id,
-                                      e.target.value
-                                    )
-                                  }
-                                  optionType="button"
-                                  buttonStyle="solid"
-                                >
-                                  <Radio.Button
-                                    value="present"
-                                    style={{
-                                      color:
-                                        attendanceMap[student.id] === "present"
-                                          ? "#fff"
-                                          : "#059669",
-                                    }}
-                                  >
-                                    มา
-                                  </Radio.Button>
-                                  <Radio.Button value="late">สาย</Radio.Button>
-                                  <Radio.Button value="leave">ลา</Radio.Button>
-                                  <Radio.Button value="absent">
-                                    ขาด
-                                  </Radio.Button>
-                                </TouchRadioGroup>
-                              </MobileStudentCard>
-                            ))
-                          )}
-                        </MobileCardView>
+                        <StyledTable
+                          dataSource={displayStudents}
+                          columns={attendanceColumns}
+                          rowKey="id"
+                          pagination={{ pageSize: 10 }}
+                          scroll={{ x: 600 }}
+                        />
                       </div>
                     ),
                   },
+                  // TAB 5: เสนอเลื่อนขั้น
                   {
-                    key: "2",
-                    label: (
-                      <span>
-                        <CheckCircleOutlined /> ตรวจงาน (
-                        {pendingStep1Count + pendingStep2Count})
-                      </span>
-                    ),
-                    children: (
-                      <StyledTable
-                        dataSource={tasks}
-                        columns={taskColumns}
-                        rowKey="id"
-                        pagination={{ pageSize: 8 }}
-                        scroll={{ x: 650 }}
-                      />
-                    ),
-                  },
-                  {
-                    key: "3",
-                    label: (
-                      <span>
-                        <ReadOutlined /> รายงาน Journal
-                      </span>
-                    ),
-                    children: (
-                      <Row gutter={[12, 12]}>
-                        {reports.length === 0 ? (
-                          <Col span={24}>
-                            <Empty description="ยังไม่มีการส่งรายงานประจำวัน" />
-                          </Col>
-                        ) : (
-                          reports.map((item: any) => {
-                            let images: string[] = [];
-                            try {
-                              images = item.image_url
-                                ? JSON.parse(item.image_url)
-                                : [];
-                            } catch {
-                              if (item.image_url) images = [item.image_url];
-                            }
-
-                            return (
-                              <Col xs={24} sm={12} md={8} key={item.id}>
-                                <Card
-                                  size="small"
-                                  style={{
-                                    borderRadius: 14,
-                                    border: "1px solid rgba(212, 175, 55, 0.3)",
-                                    background: "rgba(255,255,255,0.9)",
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      fontWeight: 700,
-                                      color: "#0a192f",
-                                      marginBottom: 2,
-                                    }}
-                                  >
-                                    {item.first_name} {item.last_name} (
-                                    {item.student_code})
-                                  </div>
-                                  <div
-                                    style={{
-                                      fontSize: 11,
-                                      color: "#64748b",
-                                      marginBottom: 8,
-                                    }}
-                                  >
-                                    วันที่: {item.report_date}
-                                  </div>
-                                  <p
-                                    style={{
-                                      fontSize: 12,
-                                      color: "#334155",
-                                      margin: 0,
-                                    }}
-                                  >
-                                    {item.details}
-                                  </p>
-
-                                  {images.length > 0 && (
-                                    <div
-                                      style={{
-                                        display: "flex",
-                                        gap: 6,
-                                        flexWrap: "wrap",
-                                        marginTop: 10,
-                                      }}
-                                    >
-                                      <Image.PreviewGroup>
-                                        {images.map((imgUrl, idx) => (
-                                          <Image
-                                            key={idx}
-                                            width={50}
-                                            height={50}
-                                            style={{
-                                              objectFit: "cover",
-                                              borderRadius: 6,
-                                            }}
-                                            src={`${
-                                              process.env.NEXT_PUBLIC_API_URL ||
-                                              "http://localhost:3000"
-                                            }${imgUrl}`}
-                                            alt="รูปปฏิบัติงาน"
-                                          />
-                                        ))}
-                                      </Image.PreviewGroup>
-                                    </div>
-                                  )}
-                                </Card>
-                              </Col>
-                            );
-                          })
-                        )}
-                      </Row>
-                    ),
-                  },
-                  {
-                    key: "4",
+                    key: "5",
                     label: (
                       <span>
                         <TrophyOutlined /> เสนอเลื่อนขั้น ({promotions.length})
                       </span>
                     ),
                     children: (
-                      <StyledTable
-                        dataSource={promotions}
-                        columns={promotionColumns}
-                        rowKey="id"
-                        pagination={{ pageSize: 6 }}
-                        scroll={{ x: 550 }}
-                      />
+                      <div style={{ paddingTop: 8 }}>
+                        <StyledTable
+                          dataSource={promotions}
+                          columns={promotionColumns}
+                          rowKey="id"
+                          pagination={{ pageSize: 6 }}
+                          scroll={{ x: 550 }}
+                        />
+                      </div>
                     ),
                   },
                 ]}
               />
             </ContentPanel>
 
+            {/* 🎴 MODAL การ์ดประจำตัวนักเรียน (แบ่ง 2 คอลัมน์ สะอาดตา) */}
+            <Modal
+              title={null}
+              open={isStudentModalOpen}
+              onCancel={() => setIsStudentModalOpen(false)}
+              footer={null}
+              centered
+              width={880}
+              style={{ borderRadius: 24, overflow: "hidden" }}
+            >
+              {selectedStudent && (
+                <div style={{ padding: "8px 4px" }}>
+                  <ProfileHeaderBox>
+                    <StudentAvatarBox
+                      style={{ margin: 0, width: 64, height: 64, fontSize: 28 }}
+                    >
+                      <UserOutlined />
+                    </StudentAvatarBox>
+                    <div>
+                      <h3
+                        style={{
+                          margin: 0,
+                          fontSize: "1.45rem",
+                          fontWeight: 800,
+                          color: "#0f172a",
+                        }}
+                      >
+                        {selectedStudent.first_name} {selectedStudent.last_name}
+                      </h3>
+                      <p
+                        style={{
+                          margin: "4px 0 0 0",
+                          color: "#64748b",
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        ห้องเรียน: {selectedStudent.classroom || "ทั่วไป"} |
+                        รหัสนักศึกษา:{" "}
+                        {selectedStudent.student_code || selectedStudent.username}
+                      </p>
+                      <div style={{ marginTop: 8, display: "flex", gap: 10 }}>
+                        <Tag
+                          color="gold"
+                          icon={<CrownOutlined />}
+                          style={{ borderRadius: 8, fontWeight: 700, padding: "2px 10px" }}
+                        >
+                          Rank Lv.{selectedStudent.rank_level || 1}
+                        </Tag>
+                        <Tag
+                          color="purple"
+                          style={{ borderRadius: 8, fontWeight: 700, padding: "2px 10px" }}
+                        >
+                          <StarFilled style={{ color: "#facc15" }} />{" "}
+                          {selectedStudent.total_exp || 0} Total EXP
+                        </Tag>
+                      </div>
+                    </div>
+                  </ProfileHeaderBox>
+
+                  <Row gutter={[20, 20]}>
+                    <Col xs={24} md={9}>
+                      {/* หลอดทักษะ */}
+                      <div
+                        style={{
+                          background: "#f8fafc",
+                          borderRadius: 16,
+                          padding: 16,
+                          border: "1px solid #e2e8f0",
+                          marginBottom: 16,
+                        }}
+                      >
+                        <h4
+                          style={{
+                            margin: "0 0 12px 0",
+                            color: "#0f172a",
+                            fontWeight: 800,
+                            fontSize: "0.95rem",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          <BuildOutlined style={{ color: "#2563eb" }} /> ระดับทักษะสะสม
+                        </h4>
+                        {studentSkills.length === 0 ? (
+                          <p style={{ color: "#94a3b8", textAlign: "center", margin: 0, fontSize: 12, padding: "8px 0" }}>
+                            ยังไม่มีคะแนนทักษะในระบบ
+                          </p>
+                        ) : (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                            {studentSkills.map((sk, idx) => {
+                              const pts = sk.points || 0;
+                              const percent = Math.min(pts, 100);
+                              return (
+                                <div key={sk.skill_id || idx}>
+                                  <div style={{ marginBottom: 2, display: "flex", justifyContent: "space-between", fontSize: "0.82rem", fontWeight: 600 }}>
+                                    <span>{sk.skill_name || "ทักษะวิชาชีพ"}</span>
+                                    <span style={{ color: "#2563eb" }}>{pts} แต้ม</span>
+                                  </div>
+                                  <Progress percent={percent} showInfo={false} strokeColor="#2563eb" trailColor="#e2e8f0" strokeWidth={8} />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* มอบคะแนนพิเศษ */}
+                      <div
+                        style={{
+                          background: "#f0fdf4",
+                          borderRadius: 16,
+                          padding: 16,
+                          border: "1px solid #bbf7d0",
+                        }}
+                      >
+                        <h4 style={{ margin: "0 0 10px 0", color: "#166534", fontWeight: 800, fontSize: "0.92rem" }}>
+                          ⚡ มอบคะแนนพิเศษ (EXP)
+                        </h4>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                          <InputNumber
+                            min={1}
+                            max={100}
+                            value={bonusPoints}
+                            onChange={(val) => setBonusPoints(val || 1)}
+                            style={{ width: "100%", borderRadius: 8, height: 38, display: "flex", alignItems: "center" }}
+                          />
+                          <Select
+                            placeholder="เลือกทักษะที่ต้องการบวกแต้ม"
+                            allowClear
+                            style={{ width: "100%", height: 38 }}
+                            onChange={(val) => setSelectedBonusSkill(val)}
+                          >
+                            {skillsList.map((sk) => (
+                              <Select.Option key={sk.id} value={sk.id}>
+                                {sk.name}
+                              </Select.Option>
+                            ))}
+                          </Select>
+                          <Button
+                            type="primary"
+                            icon={<SendOutlined />}
+                            block
+                            style={{ background: "#0a192f", border: "1px solid #d4af37", borderRadius: 8, height: 38, fontWeight: 600 }}
+                            onClick={() => handleGiveBonusPoints()}
+                          >
+                            มอบคะแนน
+                          </Button>
+                        </div>
+                      </div>
+                    </Col>
+
+                    <Col xs={24} md={15}>
+                      <ScrollableTabs
+                        defaultActiveKey="tasks"
+                        size="middle"
+                        items={[
+                          // ตรวจงานรายบุคคล
+                          {
+                            key: "tasks",
+                            label: (
+                              <span>
+                                <CheckCircleOutlined /> ตรวจงาน ({studentTasks.length})
+                              </span>
+                            ),
+                            children: (
+                              <div style={{ maxHeight: 360, overflowY: "auto", paddingRight: 4 }}>
+                                {studentTasks.length === 0 ? (
+                                  <Empty description="ยังไม่มีภารกิจค้างส่ง" style={{ padding: "16px 0" }} />
+                                ) : (
+                                  studentTasks.map((task) => (
+                                    <div
+                                      key={task.id}
+                                      style={{
+                                        background: "#ffffff",
+                                        borderRadius: 12,
+                                        padding: 12,
+                                        marginBottom: 8,
+                                        border: "1px solid #e2e8f0",
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        gap: 10,
+                                      }}
+                                    >
+                                      <div>
+                                        <div style={{ fontWeight: 700, fontSize: "0.92rem", color: "#0f172a" }}>
+                                          {task.title}
+                                        </div>
+                                        <div style={{ fontSize: "0.8rem", color: "#64748b", marginTop: 2 }}>
+                                          {task.description || "ไม่มีคำอธิบาย"}
+                                        </div>
+                                      </div>
+
+                                      <div>
+                                        {task.status === "completed" ? (
+                                          <Tag color="green" icon={<CheckCircleOutlined />} style={{ borderRadius: 6 }}>
+                                            ตรวจแล้ว
+                                          </Tag>
+                                        ) : task.status === "pending" ? (
+                                          <Button
+                                            size="small"
+                                            type="primary"
+                                            style={{ background: "#0a192f", border: "1px solid #d4af37", borderRadius: 6 }}
+                                            onClick={() => handleApprove(task.id, "step1_assign", "approved")}
+                                          >
+                                            Step 1
+                                          </Button>
+                                        ) : (
+                                          <Button
+                                            size="small"
+                                            type="primary"
+                                            style={{ background: "#059669", border: "none", borderRadius: 6 }}
+                                            onClick={() => handleApprove(task.id, "step2_grade", "approved")}
+                                          >
+                                            Step 2
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            ),
+                          },
+                          // Journal ประจำวัน
+                          {
+                            key: "journals",
+                            label: (
+                              <span>
+                                <ReadOutlined /> Journal ({studentReports.length})
+                              </span>
+                            ),
+                            children: (
+                              <div style={{ maxHeight: 360, overflowY: "auto", paddingRight: 4 }}>
+                                {studentReports.length === 0 ? (
+                                  <Empty description="ยังไม่มีรายงานประจำวัน" style={{ padding: "16px 0" }} />
+                                ) : (
+                                  studentReports.map((item) => {
+                                    let files: string[] = [];
+                                    try {
+                                      files = item.image_url ? JSON.parse(item.image_url) : [];
+                                    } catch {
+                                      if (item.image_url) files = [item.image_url];
+                                    }
+
+                                    return (
+                                      <Card key={item.id} size="small" style={{ marginBottom: 8, borderRadius: 12 }}>
+                                        <div style={{ fontSize: 11.5, fontWeight: 700, color: "#2563eb", marginBottom: 4 }}>
+                                          📅 วันที่ส่ง: {item.report_date}
+                                        </div>
+                                        <p style={{ fontSize: 12.5, color: "#334155", margin: "0 0 6px 0" }}>
+                                          {item.details || "ไม่มีข้อความอธิบาย"}
+                                        </p>
+                                        {files.length > 0 && (
+                                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                            {files.map((fileUrl, idx) => {
+                                              const isVideo = fileUrl.match(/\.(mp4|mov|avi|webm|mkv)$/i);
+                                              const fullUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}${fileUrl}`;
+                                              return isVideo ? (
+                                                <video key={idx} src={fullUrl} controls style={{ width: 120, height: 75, borderRadius: 8, objectFit: "cover" }} />
+                                              ) : (
+                                                <Image key={idx} width={60} height={60} style={{ objectFit: "cover", borderRadius: 8 }} src={fullUrl} alt="รูป" />
+                                              );
+                                            })}
+                                          </div>
+                                        )}
+                                      </Card>
+                                    );
+                                  })
+                                )}
+                              </div>
+                            ),
+                          },
+                          // เสนอเลื่อนขั้น
+                          {
+                            key: "promotion",
+                            label: (
+                              <span>
+                                <TrophyOutlined /> เสนอเลื่อนขั้น
+                              </span>
+                            ),
+                            children: (
+                              <div>
+                                <Form form={promotionForm} layout="vertical" onFinish={handleSendPromotionFromModal}>
+                                  <Form.Item label="Rank Level ที่เสนอขึ้นไป" name="target_rank" rules={[{ required: true }]}>
+                                    <InputNumber min={2} max={10} style={{ width: "100%", borderRadius: 8, height: 38, display: "flex", alignItems: "center" }} placeholder="เช่น Rank 2" />
+                                  </Form.Item>
+                                  <Form.Item label="เหตุผล / ผลงานโดดเด่น" name="reason">
+                                    <Input.TextArea rows={2} placeholder="อธิบายผลงาน..." style={{ borderRadius: 8 }} />
+                                  </Form.Item>
+                                  <Button type="primary" htmlType="submit" icon={<SendOutlined />} block style={{ background: "#0a192f", border: "1px solid #d4af37", borderRadius: 10, height: 38 }}>
+                                    ส่งเสนอแอดมิน
+                                  </Button>
+                                </Form>
+                              </div>
+                            ),
+                          },
+                        ]}
+                      />
+                    </Col>
+                  </Row>
+                </div>
+              )}
+            </Modal>
+
+            {/* Modal สั่งงานใหม่ */}
             <Modal
               title="มอบหมายภารกิจใหม่ให้นักเรียน"
               open={createTaskModal}
               onCancel={() => setCreateTaskModal(false)}
               footer={null}
               centered
-              width={520}
+              width={540}
             >
-              <Form
-                form={taskForm}
-                layout="vertical"
-                onFinish={handleCreateTask}
-              >
-                <Form.Item
-                  label="เลือกนักเรียนเป้าหมาย"
-                  name="student_ids"
-                  rules={[
-                    {
-                      required: true,
-                      message: "กรุณาเลือกนักเรียนอย่างน้อย 1 คน",
-                    },
-                  ]}
-                >
-                  <Select
-                    mode="multiple"
-                    placeholder="เลือกนักเรียน..."
-                    optionFilterProp="label"
-                    size="middle"
-                    options={students.map((s) => ({
-                      value: s.id,
-                      label: `${s.first_name} ${s.last_name} (${
-                        s.student_code || s.username
-                      })`,
-                    }))}
-                  />
+              <Form form={taskForm} layout="vertical" onFinish={handleCreateTask} style={{ marginTop: 12 }}>
+                <Form.Item label="เลือกนักเรียนเป้าหมาย" name="student_ids" rules={[{ required: true, message: "กรุณาเลือกนักเรียนอย่างน้อย 1 คน" }]}>
+                  <Select mode="multiple" placeholder="เลือกนักเรียน..." optionFilterProp="label" size="middle" options={students.map((s) => ({ value: s.id, label: `${s.first_name} ${s.last_name} (${s.student_code || s.username})` }))} />
                 </Form.Item>
-
-                <Form.Item
-                  label="ชื่องาน / โครงงาน"
-                  name="title"
-                  rules={[{ required: true, message: "กรุณากรอกชื่องาน" }]}
-                >
-                  <Input
-                    placeholder="เช่น ประกอบชุดฝึกนิวแมติกส์ควบคุมด้วย PLC"
-                    size="middle"
-                  />
+                <Form.Item label="ชื่องาน / โครงงาน" name="title" rules={[{ required: true, message: "กรุณากรอกชื่องาน" }]}>
+                  <Input placeholder="เช่น ประกอบชุดฝึกนิวแมติกส์ควบคุมด้วย PLC" size="middle" />
                 </Form.Item>
-
-                <Form.Item label="คำอธิบายเพิ่มเติม" name="description">
-                  <Input.TextArea
-                    rows={3}
-                    placeholder="รายละเอียดหรือเงื่อนไข..."
-                  />
-                </Form.Item>
-
-                <Form.Item
-                  label="ทักษะวิชาชีพที่จะได้รับ"
-                  name="target_skill"
-                  rules={[{ required: true, message: "กรุณาเลือกทักษะ" }]}
-                >
-                  <Select placeholder="เลือกทักษะ" size="middle">
-                    <Select.Option value="PLC Programming">
-                      PLC Programming
-                    </Select.Option>
-                    <Select.Option value="Pneumatics System">
-                      Pneumatics System
-                    </Select.Option>
-                    <Select.Option value="Robotics Control">
-                      Robotics Control
-                    </Select.Option>
-                    <Select.Option value="Electrical Circuit">
-                      Electrical Circuit
-                    </Select.Option>
-                    <Select.Option value="Sensor & Actuator">
-                      Sensor & Actuator
-                    </Select.Option>
+                <Form.Item label="🎯 ทักษะที่จะได้รับ" name="skill_id">
+                  <Select placeholder="-- เลือกทักษะที่เกี่ยวข้อง --" allowClear size="middle">
+                    {skillsList.map((sk) => (
+                      <Select.Option key={sk.id} value={sk.id}>{sk.name}</Select.Option>
+                    ))}
                   </Select>
                 </Form.Item>
-
-                <Form.Item
-                  label="คะแนน EXP"
-                  name="points"
-                  initialValue={10}
-                  rules={[{ required: true }]}
-                >
-                  <InputNumber
-                    min={5}
-                    max={100}
-                    style={{ width: "100%" }}
-                    size="middle"
-                  />
+                <Form.Item label="คำอธิบายเพิ่มเติม" name="description">
+                  <Input.TextArea rows={3} placeholder="รายละเอียดหรือเงื่อนไข..." />
                 </Form.Item>
-
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  block
-                  style={{
-                    background: "#0a192f",
-                    border: "1px solid #d4af37",
-                    borderRadius: 10,
-                    height: 42,
-                  }}
-                >
+                <Form.Item label="คะแนน EXP" name="points" initialValue={10} rules={[{ required: true }]}>
+                  <InputNumber min={5} max={100} style={{ width: "100%" }} size="middle" />
+                </Form.Item>
+                <Button type="primary" htmlType="submit" block style={{ background: "#0a192f", border: "1px solid #d4af37", borderRadius: 10, height: 42 }}>
                   ยืนยันสั่งงาน
                 </Button>
               </Form>
             </Modal>
 
+            {/* Modal เพิ่มทักษะใหม่ */}
             <Modal
-              title="เสนอเลื่อนขั้นนักเรียน"
-              open={promotionModal}
-              onCancel={() => setPromotionModal(false)}
+              title="⚙️ เพิ่มหมวดหมู่ทักษะใหม่ลง Database"
+              open={createSkillModal}
+              onCancel={() => setCreateSkillModal(false)}
               footer={null}
               centered
               width={480}
             >
-              <Form
-                form={promotionForm}
-                layout="vertical"
-                onFinish={handleSendPromotion}
-              >
-                <Form.Item
-                  label="เลือกนักเรียน"
-                  name="student_id"
-                  rules={[{ required: true }]}
-                >
-                  <Select
-                    placeholder="เลือกนักเรียน..."
-                    optionFilterProp="label"
-                    size="middle"
-                    options={students.map((s) => ({
-                      value: s.id,
-                      label: `${s.first_name} ${
-                        s.last_name
-                      } (ปัจจุบัน Rank Lv.${s.rank_level || 1})`,
-                    }))}
-                  />
+              <Form form={skillForm} layout="vertical" onFinish={handleCreateSkill} style={{ marginTop: 12 }}>
+                <Form.Item name="name" label="ชื่อทักษะ (Skill Name)" rules={[{ required: true, message: "กรุณากรอกชื่อทักษะ" }]}>
+                  <Input placeholder="เช่น การเขียนโปรแกรม PLC" size="middle" />
                 </Form.Item>
-
-                <Form.Item
-                  label="Rank Level ที่เสนอขึ้นไป"
-                  name="proposed_rank"
-                  rules={[{ required: true }]}
-                >
-                  <InputNumber
-                    min={2}
-                    max={10}
-                    style={{ width: "100%" }}
-                    size="middle"
-                    placeholder="เช่น Rank 3"
-                  />
+                <Form.Item name="description" label="รายละเอียดทักษะ">
+                  <Input.TextArea rows={3} placeholder="คำอธิบายขอบเขตทักษะ..." />
                 </Form.Item>
-
-                <Form.Item label="เหตุผล / ผลงานโดดเด่น" name="reason">
-                  <Input.TextArea
-                    rows={3}
-                    placeholder="อธิบายผลงานที่สมควรได้รับการเลื่อนขั้น..."
-                  />
-                </Form.Item>
-
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  icon={<SendOutlined />}
-                  block
-                  style={{
-                    background: "#0a192f",
-                    border: "1px solid #d4af37",
-                    borderRadius: 10,
-                    height: 42,
-                  }}
-                >
-                  ส่งเสนอแอดมิน
+                <Button type="primary" htmlType="submit" block style={{ background: "#0a192f", border: "1px solid #d4af37", borderRadius: 10, height: 42 }}>
+                  สร้างทักษะ
                 </Button>
               </Form>
             </Modal>

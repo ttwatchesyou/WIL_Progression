@@ -8,6 +8,7 @@ export interface CreateTaskPayload {
   title: string;
   description?: string;
   target_skill: string;
+  skill_id?: number | null;
   points: number;
 }
 
