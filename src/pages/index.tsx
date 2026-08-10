@@ -72,11 +72,17 @@ const HeroContainer = styled.div`
 `;
 
 const MainTitle = styled.h1`
-  font-size: clamp(2rem, 4.5vw, 3.5rem);
+  font-size: clamp(1.4rem, 6vw, 3.5rem);
   font-weight: 800;
   line-height: 1.2;
   margin-bottom: 16px;
   color: #0f172a;
+
+  @media (max-width: 576px) {
+    line-height: 1.35;
+    margin-bottom: 12px;
+    word-break: break-word; 
+  }
 
   span.highlight {
     background: linear-gradient(135deg, #0a192f 0%, #2563eb 50%, #c5a059 100%);

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3025",
+    "dev": "next dev 3025",
     "build": "cross-env PORT=3035 next build",
     "start": "cross-env PORT=3035 next start",
     "deploy:dev": "yarn build && pm2 startOrRestart ecosystem.config.js --env dev",
