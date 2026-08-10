@@ -170,7 +170,7 @@ const HeroActionButton = styled(Button)`
   padding: 0 24px;
   box-shadow: 0 4px 14px rgba(10, 25, 47, 0.2);
   transition: all 0.3s ease;
-  width: 100%;
+  max-width: 100%;
   white-space: normal;
 
   &:hover {
@@ -193,12 +193,13 @@ const HeroActionButton = styled(Button)`
 // สร้างตัวครอบปุ่ม (Container) เพื่อให้หน้าจอมือถือมีขอบเว้นระยะสวยงาม
 const ActionButtonContainer = styled.div`
   display: flex;
-  justify-content: flex-start;
+  justify-content: center; /* 👈 เปลี่ยนตรงนี้เป็น center เพื่อให้อยู่ตรงกลางเสมอ */
+  align-items: center;
   width: 100%;
-
+  margin-top: 16px; /* เพิ่มระยะห่างด้านบนนิดนึงไม่ให้ติดข้อความเกินไป (ปรับเลขได้ตามชอบ) */
+  
   @media (max-width: 576px) {
-    justify-content: center; /* จับปุ่มไว้ตรงกลางในมือถือ */
-    padding: 0 16px; /* เว้นขอบจอซ้าย-ขวา ไม่ให้ปุ่มแนบขอบเกินไป */
+    padding: 0 16px; /* เว้นขอบจอซ้าย-ขวาบนมือถือ */
   }
 `;
 
