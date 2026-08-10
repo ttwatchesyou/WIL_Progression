@@ -170,9 +170,7 @@ const HeroActionButton = styled(Button)`
   padding: 0 24px;
   box-shadow: 0 4px 14px rgba(10, 25, 47, 0.2);
   transition: all 0.3s ease;
-
-  /* ป้องกันการทะลุขอบจอทั่วไป */
-  max-width: 100%;
+  width: 100%;
   white-space: normal;
 
   &:hover {
