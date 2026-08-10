@@ -288,7 +288,7 @@ export default function Register() {
         <RegisterCard>
           <HeaderBox>
             <BrandTitle>
-              ลงทะเบียน <span>WILL Progression</span>
+              ลงทะเบียน <span>WIL Progression</span>
             </BrandTitle>
             <BrandSubtitle>
               Mechatronics And Robotics Rayong Technical College <br />

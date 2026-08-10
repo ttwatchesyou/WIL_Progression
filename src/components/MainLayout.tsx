@@ -199,7 +199,7 @@ export default function MainLayout({
         <LogoBox onClick={() => router.push("/")}>
           <LogoIcon>W</LogoIcon>
           <BrandText>
-            WILL <span>Progression</span>
+            WIL <span>Progression</span>
           </BrandText>
         </LogoBox>
 
@@ -254,7 +254,7 @@ export default function MainLayout({
           zIndex: 1,
         }}
       >
-        WILL Progression System &copy; {new Date().getFullYear()} — Mechatronics
+        WIL Progression System &copy; {new Date().getFullYear()} — Mechatronics
         Rayong Tech
       </Footer>
     </StyledLayout>

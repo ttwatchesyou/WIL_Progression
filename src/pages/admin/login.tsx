@@ -165,7 +165,7 @@ export default function AdminLogin() {
             <Title>
               ADMIN <span>CONTROL CENTER</span>
             </Title>
-            <Subtitle>ระบบหลังบ้านผู้ดูแลระบบ WILL Progression</Subtitle>
+            <Subtitle>ระบบหลังบ้านผู้ดูแลระบบ WIL Progression</Subtitle>
           </HeaderBox>
 
           <Form layout="vertical" onFinish={onAdminLogin} requiredMark={false}>

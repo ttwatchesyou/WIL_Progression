@@ -81,7 +81,7 @@ const MainTitle = styled.h1`
   @media (max-width: 576px) {
     line-height: 1.35;
     margin-bottom: 12px;
-    word-break: break-word; 
+    word-break: break-word;
   }
 
   span.highlight {
@@ -157,6 +157,53 @@ const SectionHeader = styled.div`
   }
 `;
 
+const HeroActionButton = styled(Button)`
+  background: #0a192f !important;
+  border: 1px solid #d4af37 !important;
+  color: white !important;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  padding: 0 24px;
+  box-shadow: 0 4px 14px rgba(10, 25, 47, 0.2);
+  transition: all 0.3s ease;
+
+  /* ป้องกันการทะลุขอบจอทั่วไป */
+  max-width: 100%;
+  white-space: normal;
+
+  &:hover {
+    background: #0f2a4a !important;
+    border-color: #f1c40f !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.3);
+  }
+
+  /* 📱 Media Query สำหรับมือถือ (หน้าจอเล็กกว่า 576px) */
+  @media (max-width: 576px) {
+    width: 100%; /* บังคับปุ่มกว้างเต็มกรอบ พอกดในมือถือจะเต็มไม้เต็มมือ */
+    height: auto;
+    min-height: 48px; /* เพิ่มความสูงให้เป้ากด (Hitbox) ในมือถือกดง่ายขึ้น */
+    padding: 12px 20px;
+    font-size: 0.95rem;
+  }
+`;
+
+// สร้างตัวครอบปุ่ม (Container) เพื่อให้หน้าจอมือถือมีขอบเว้นระยะสวยงาม
+const ActionButtonContainer = styled.div`
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+
+  @media (max-width: 576px) {
+    justify-content: center; /* จับปุ่มไว้ตรงกลางในมือถือ */
+    padding: 0 16px; /* เว้นขอบจอซ้าย-ขวา ไม่ให้ปุ่มแนบขอบเกินไป */
+  }
+`;
+
 export default function Home() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -192,41 +239,29 @@ export default function Home() {
           <LogoBox onClick={() => router.push("/")}>
             <LogoIcon>W</LogoIcon>
             <div style={{ fontWeight: 700, fontSize: "1.2rem" }}>
-              WILL <span style={{ color: "#c5a059" }}>Progression</span>
+              WIL <span style={{ color: "#c5a059" }}>Progression</span>
             </div>
           </LogoBox>
 
-          <div>
+          <ActionButtonContainer>
             {isLoggedIn ? (
-              <Button
+              <HeroActionButton
                 type="primary"
                 icon={<RocketOutlined />}
-                style={{
-                  background: "#0a192f",
-                  border: "1px solid #d4af37",
-                  height: 44,
-                  borderRadius: 12,
-                }}
                 onClick={() => router.push("/dashboard/student")}
               >
                 ไปยัง Dashboard
-              </Button>
+              </HeroActionButton>
             ) : (
-              <Button
+              <HeroActionButton
                 type="primary"
                 icon={<LoginOutlined />}
-                style={{
-                  background: "#0a192f",
-                  border: "1px solid #d4af37",
-                  height: 44,
-                  borderRadius: 12,
-                }}
                 onClick={() => router.push("/login")}
               >
                 เข้าสู่ระบบ
-              </Button>
+              </HeroActionButton>
             )}
-          </div>
+          </ActionButtonContainer>
         </HeaderNavbar>
 
         <HeroContainer>
@@ -364,7 +399,7 @@ export default function Home() {
             borderTop: "1px solid #e2e8f0",
           }}
         >
-          WILL Progression System &copy; {new Date().getFullYear()} —
+          WIL Progression System &copy; {new Date().getFullYear()} —
           Mechatronics And Robotics Rayong Technical College | โครงการ WIL
           แผนกวิชาเมคคาทรอนิกส์และหุ่นยนต์
         </footer>

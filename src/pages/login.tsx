@@ -235,7 +235,7 @@ export default function Login() {
           <HeaderBox>
             <LogoBox>W</LogoBox>
             <BrandTitle>
-              WILL <span>Progression</span>
+              WIL <span>Progression</span>
             </BrandTitle>
             <BrandSubtitle>
               Mechatronics And Robotics Rayong Technical College <br />
