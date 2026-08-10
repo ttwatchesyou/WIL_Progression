@@ -38,9 +38,15 @@ const HeaderNavbar = styled.header`
   justify-content: space-between;
   align-items: center;
   padding: 24px 48px;
-  max-width: 1280px;
+  max-width: 1440px;
   margin: 0 auto;
   width: 100%;
+  box-sizing: border-box;
+
+  @media (max-width: 576px) {
+    padding: 16px 20px; /* ลด Padding บนมือถือ */
+    gap: 12px;
+  }
 `;
 
 const LogoBox = styled.div`
@@ -48,6 +54,7 @@ const LogoBox = styled.div`
   align-items: center;
   gap: 12px;
   cursor: pointer;
+  flex-shrink: 0; /* ป้องกันโลโก้ถูกบีบ */
 `;
 
 const LogoIcon = styled.div`
@@ -61,6 +68,13 @@ const LogoIcon = styled.div`
   color: #d4af37;
   font-weight: 700;
   font-size: 22px;
+
+  @media (max-width: 576px) {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    border-radius: 10px;
+  }
 `;
 
 const HeroContainer = styled.div`
@@ -170,8 +184,7 @@ const HeroActionButton = styled(Button)`
   padding: 0 24px;
   box-shadow: 0 4px 14px rgba(10, 25, 47, 0.2);
   transition: all 0.3s ease;
-  max-width: 100%;
-  white-space: normal;
+  white-space: nowrap; /* ป้องกันข้อความในปุ่มขึ้นบรรทัดใหม่ */
 
   &:hover {
     background: #0f2a4a !important;
@@ -180,27 +193,20 @@ const HeroActionButton = styled(Button)`
     box-shadow: 0 6px 20px rgba(212, 175, 55, 0.3);
   }
 
-  /* 📱 Media Query สำหรับมือถือ (หน้าจอเล็กกว่า 576px) */
   @media (max-width: 576px) {
-    width: 100%; /* บังคับปุ่มกว้างเต็มกรอบ พอกดในมือถือจะเต็มไม้เต็มมือ */
-    height: auto;
-    min-height: 48px; /* เพิ่มความสูงให้เป้ากด (Hitbox) ในมือถือกดง่ายขึ้น */
-    padding: 12px 20px;
-    font-size: 0.95rem;
+    height: 38px;
+    padding: 0 12px;
+    font-size: 0.85rem;
+    border-radius: 10px;
   }
 `;
 
 // สร้างตัวครอบปุ่ม (Container) เพื่อให้หน้าจอมือถือมีขอบเว้นระยะสวยงาม
 const ActionButtonContainer = styled.div`
   display: flex;
-  justify-content: center; /* 👈 เปลี่ยนตรงนี้เป็น center เพื่อให้อยู่ตรงกลางเสมอ */
   align-items: center;
-  width: 100%;
-  margin-top: 16px; /* เพิ่มระยะห่างด้านบนนิดนึงไม่ให้ติดข้อความเกินไป (ปรับเลขได้ตามชอบ) */
-  
-  @media (max-width: 576px) {
-    padding: 0 16px; /* เว้นขอบจอซ้าย-ขวาบนมือถือ */
-  }
+  justify-content: flex-end;
+  flex-shrink: 0;
 `;
 
 export default function Home() {
