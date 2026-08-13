@@ -13,6 +13,46 @@ import styled, { keyframes } from "styled-components";
 import Cookies from "js-cookie";
 import { apiClient } from "@/services/apiClient";
 
+// ---------------------------------------------------------
+// 🛠️ HELPER FUNCTIONS FOR IMAGE URL RESOLUTION
+// ---------------------------------------------------------
+
+// ฟังก์ชันแปลง Base URL ตัดคำว่า /api ออกอัตโนมัติเพื่อเรียกดูไฟล์ static /uploads
+const getMediaUrl = (path: string) => {
+  if (!path) return "";
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+
+  const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8008";
+  // ตัด /api หรือ / ด้านหลังออก
+  const baseUrl = rawApiUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+
+  return `${baseUrl}${cleanPath}`;
+};
+
+// ฟังก์ชันแกะ JSON Array รูปภาพอย่างปลอดภัย
+const parseImageUrl = (rawImageUrl: any): string => {
+  if (!rawImageUrl) return "";
+  try {
+    const parsed = typeof rawImageUrl === "string" ? JSON.parse(rawImageUrl) : rawImageUrl;
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return getMediaUrl(parsed[0]);
+    }
+    if (typeof parsed === "string") {
+      return getMediaUrl(parsed);
+    }
+  } catch (e) {
+    if (typeof rawImageUrl === "string") {
+      return getMediaUrl(rawImageUrl);
+    }
+  }
+  return "";
+};
+
+// ---------------------------------------------------------
+// 🎭 ANIMATIONS & STYLED COMPONENTS
+// ---------------------------------------------------------
+
 const floatAnimation = keyframes`
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-8px); }
@@ -44,7 +84,7 @@ const HeaderNavbar = styled.header`
   box-sizing: border-box;
 
   @media (max-width: 576px) {
-    padding: 16px 20px; /* ลด Padding บนมือถือ */
+    padding: 16px 20px;
     gap: 12px;
   }
 `;
@@ -54,7 +94,7 @@ const LogoBox = styled.div`
   align-items: center;
   gap: 12px;
   cursor: pointer;
-  flex-shrink: 0; /* ป้องกันโลโก้ถูกบีบ */
+  flex-shrink: 0;
 `;
 
 const LogoIcon = styled.div`
@@ -184,7 +224,7 @@ const HeroActionButton = styled(Button)`
   padding: 0 24px;
   box-shadow: 0 4px 14px rgba(10, 25, 47, 0.2);
   transition: all 0.3s ease;
-  white-space: nowrap; /* ป้องกันข้อความในปุ่มขึ้นบรรทัดใหม่ */
+  white-space: nowrap;
 
   &:hover {
     background: #0f2a4a !important;
@@ -201,13 +241,16 @@ const HeroActionButton = styled(Button)`
   }
 `;
 
-// สร้างตัวครอบปุ่ม (Container) เพื่อให้หน้าจอมือถือมีขอบเว้นระยะสวยงาม
 const ActionButtonContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: flex-end;
   flex-shrink: 0;
 `;
+
+// ---------------------------------------------------------
+// ⚙️ MAIN COMPONENT
+// ---------------------------------------------------------
 
 export default function Home() {
   const router = useRouter();
@@ -283,16 +326,14 @@ export default function Home() {
           </MainTitle>
         </HeroContainer>
 
-        {/* 🏆 Carousel ผลงาน / รางวัลการแข่งขัน (ซ่อนอัตโนมัติหากไม่มีข้อมูล) */}
+        {/* 🏆 Carousel ผลงาน / รางวัลการแข่งขัน */}
         {showcaseData.carousel && showcaseData.carousel.length > 0 && (
           <StyledCarouselWrapper>
             <Carousel autoplay effect="fade">
               {showcaseData.carousel.map((slide) => (
                 <div key={slide.id} style={{ position: "relative" }}>
                   <img
-                    src={`${
-                      process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-                    }${slide.image_url}`}
+                    src={getMediaUrl(slide.image_url)}
                     alt={slide.title}
                   />
                   <CarouselContent>
@@ -315,7 +356,7 @@ export default function Home() {
           </StyledCarouselWrapper>
         )}
 
-        {/* ⚡ Floating Glass Cards (ซ่อนทั้งส่วนอัตโนมัติหากไม่มีผลงานถูกเลือก) */}
+        {/* ⚡ Floating Glass Cards (ผลงานการปฏิบัติงานรายวัน) */}
         {showcaseData.featured_journals &&
           showcaseData.featured_journals.length > 0 && (
             <div
@@ -336,10 +377,10 @@ export default function Home() {
 
               <Row gutter={[20, 20]}>
                 {showcaseData.featured_journals.map((item) => {
-                  let images: string[] = [];
-                  try {
-                    images = JSON.parse(item.image_url);
-                  } catch {}
+                  const displayImg = parseImageUrl(item.image_url);
+                  const formattedDate = item.report_date
+                    ? item.report_date.split("T")[0]
+                    : "";
 
                   return (
                     <Col xs={24} sm={12} md={8} key={item.id}>
@@ -355,7 +396,9 @@ export default function Home() {
                           <span style={{ fontWeight: 700, color: "#0a192f" }}>
                             {item.first_name} {item.last_name}
                           </span>
-                          <Tag color="gold">Rank Lv.{item.rank_level}</Tag>
+                          <Tag color="gold">
+                            Rank Lv.{item.rank_level || 1}
+                          </Tag>
                         </div>
                         <div
                           style={{
@@ -364,7 +407,8 @@ export default function Home() {
                             marginBottom: 8,
                           }}
                         >
-                          วันที่: {item.report_date} ({item.classroom})
+                          วันที่: {formattedDate}{" "}
+                          {item.classroom ? `(${item.classroom})` : ""}
                         </div>
                         <p
                           style={{
@@ -376,15 +420,12 @@ export default function Home() {
                           {item.details}
                         </p>
 
-                        {images.length > 0 && (
+                        {displayImg && (
                           <Image
                             height={140}
                             width="100%"
                             style={{ objectFit: "cover", borderRadius: 12 }}
-                            src={`${
-                              process.env.NEXT_PUBLIC_API_URL ||
-                              "http://localhost:3000"
-                            }${images[0]}`}
+                            src={displayImg}
                             alt="ภาพการปฏิบัติงาน"
                           />
                         )}
