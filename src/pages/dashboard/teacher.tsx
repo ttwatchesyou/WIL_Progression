@@ -55,6 +55,22 @@ import dayjs from "dayjs";
 import Head from "next/head";
 
 // ---------------------------------------------------------
+// 🛠️ HELPER FUNCTION FOR MEDIA URL RESOLUTION
+// ---------------------------------------------------------
+
+const getMediaUrl = (path: string) => {
+  if (!path) return "";
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+
+  const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8008";
+  // ตัด /api หรือ / ด้านหลังออก เพื่อให้เหลือเฉพาะ Domain หลัก
+  const baseUrl = rawApiUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+
+  return `${baseUrl}${cleanPath}`;
+};
+
+// ---------------------------------------------------------
 // 💎 STYLED COMPONENTS (RESPONSIVE & TOUCH-SCROLLABLE)
 // ---------------------------------------------------------
 
@@ -102,7 +118,6 @@ const BannerMetaText = styled.p`
   margin: 4px 0 0 0;
 `;
 
-// 🧱 การ์ดสรุปสถิติ (ปรับขนาดอัตโนมัติตามหน้าจอ ป้องกันข้อความถูกตัด)
 const StatCard = styled.div`
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(20px) saturate(180%);
@@ -181,7 +196,6 @@ const ContentPanel = styled.div`
   }
 `;
 
-// 📱 แถบ Tabs ที่เปิดสิทธิ์ให้ใช้นิ้วปัดเลื่อนซ้าย-ขวาบนมือถือได้
 const ScrollableTabs = styled(Tabs)`
   width: 100%;
 
@@ -191,9 +205,9 @@ const ScrollableTabs = styled(Tabs)`
 
     .ant-tabs-nav-wrap {
       overflow-x: auto !important;
-      scrollbar-width: none; /* Firefox */
+      scrollbar-width: none;
       &::-webkit-scrollbar {
-        display: none; /* Chrome/Safari */
+        display: none;
       }
     }
 
@@ -326,7 +340,6 @@ export default function TeacherDashboard() {
   const [promotions, setPromotions] = useState<any[]>([]);
   const [skillsList, setSkillsList] = useState<any[]>([]);
 
-  // State โปรไฟล์นักเรียนรายบุคคล
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [studentTasks, setStudentTasks] = useState<any[]>([]);
   const [studentSkills, setStudentSkills] = useState<any[]>([]);
@@ -337,7 +350,6 @@ export default function TeacherDashboard() {
   const [selectedBonusSkill, setSelectedBonusSkill] = useState<any>(null);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
 
-  // State เช็คชื่อ
   const [attendanceDate, setAttendanceDate] = useState<dayjs.Dayjs>(dayjs());
   const [selectedClassroom, setSelectedClassroom] = useState<string>("all");
   const [attendanceMap, setAttendanceMap] = useState<{
@@ -345,7 +357,6 @@ export default function TeacherDashboard() {
   }>({});
   const [savingAttendance, setSavingAttendance] = useState(false);
 
-  // Modals
   const [createTaskModal, setCreateTaskModal] = useState(false);
   const [createSkillModal, setCreateSkillModal] = useState(false);
 
@@ -869,7 +880,7 @@ export default function TeacherDashboard() {
               </ActionButtonGroup>
             </WelcomeBanner>
 
-            {/* Stat Cards (ปรับแต่งให้อ่านง่าย ข้อความไม่ขาด) */}
+            {/* Stat Cards */}
             <Row gutter={[12, 12]}>
               <Col xs={12} sm={12} md={6}>
                 <StatCard>
@@ -920,7 +931,7 @@ export default function TeacherDashboard() {
               </Col>
             </Row>
 
-            {/* Content Panel (ใช้ ScrollableTabs เลื่อนซ้าย-ขวาบนมือถือได้ลื่นไหล) */}
+            {/* Content Panel */}
             <ContentPanel>
               <ScrollableTabs
                 defaultActiveKey="1"
@@ -1050,6 +1061,10 @@ export default function TeacherDashboard() {
                                 if (item.image_url) files = [item.image_url];
                               }
 
+                              const formattedDate = item.report_date
+                                ? item.report_date.split("T")[0]
+                                : "";
+
                               return (
                                 <Col xs={24} sm={12} md={8} key={item.id}>
                                   <Card
@@ -1061,10 +1076,10 @@ export default function TeacherDashboard() {
                                     }}
                                   >
                                     <div style={{ fontWeight: 700, color: "#0a192f" }}>
-                                      {item.first_name} {item.last_name} ({item.student_code})
+                                      {item.first_name} {item.last_name} ({item.student_code || item.username})
                                     </div>
                                     <div style={{ fontSize: 11, color: "#64748b", margin: "2px 0 6px 0" }}>
-                                      📅 วันที่ส่ง: {item.report_date}
+                                      📅 วันที่ส่ง: {formattedDate}
                                     </div>
                                     <p style={{ fontSize: 12.5, color: "#334155", margin: "0 0 8px 0" }}>
                                       {item.details || "ไม่มีข้อความอธิบาย"}
@@ -1074,7 +1089,7 @@ export default function TeacherDashboard() {
                                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                                         {files.map((fileUrl, idx) => {
                                           const isVideo = fileUrl.match(/\.(mp4|mov|avi|webm|mkv)$/i);
-                                          const fullUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}${fileUrl}`;
+                                          const fullUrl = getMediaUrl(fileUrl);
                                           
                                           return isVideo ? (
                                             <video 
@@ -1209,7 +1224,7 @@ export default function TeacherDashboard() {
               />
             </ContentPanel>
 
-            {/* 🎴 MODAL การ์ดประจำตัวนักเรียน (แบ่ง 2 คอลัมน์ สะอาดตา) */}
+            {/* 🎴 MODAL การ์ดประจำตัวนักเรียน */}
             <Modal
               title={null}
               open={isStudentModalOpen}
@@ -1455,10 +1470,14 @@ export default function TeacherDashboard() {
                                       if (item.image_url) files = [item.image_url];
                                     }
 
+                                    const formattedDate = item.report_date
+                                      ? item.report_date.split("T")[0]
+                                      : "";
+
                                     return (
                                       <Card key={item.id} size="small" style={{ marginBottom: 8, borderRadius: 12 }}>
                                         <div style={{ fontSize: 11.5, fontWeight: 700, color: "#2563eb", marginBottom: 4 }}>
-                                          📅 วันที่ส่ง: {item.report_date}
+                                          📅 วันที่ส่ง: {formattedDate}
                                         </div>
                                         <p style={{ fontSize: 12.5, color: "#334155", margin: "0 0 6px 0" }}>
                                           {item.details || "ไม่มีข้อความอธิบาย"}
@@ -1467,7 +1486,7 @@ export default function TeacherDashboard() {
                                           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                                             {files.map((fileUrl, idx) => {
                                               const isVideo = fileUrl.match(/\.(mp4|mov|avi|webm|mkv)$/i);
-                                              const fullUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}${fileUrl}`;
+                                              const fullUrl = getMediaUrl(fileUrl);
                                               return isVideo ? (
                                                 <video key={idx} src={fullUrl} controls style={{ width: 120, height: 75, borderRadius: 8, objectFit: "cover" }} />
                                               ) : (
