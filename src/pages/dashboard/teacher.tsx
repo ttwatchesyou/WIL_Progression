@@ -21,6 +21,10 @@ import {
   Radio,
   Progress,
   Space,
+  Calendar,
+  Popconfirm,
+  Tooltip,
+  Rate,
 } from "antd";
 import {
   CheckCircleOutlined,
@@ -36,12 +40,13 @@ import {
   SaveOutlined,
   UserOutlined,
   BuildOutlined,
-  ThunderboltOutlined,
   SettingOutlined,
   CrownOutlined,
   StarFilled,
   CameraOutlined,
   CloseCircleOutlined,
+  EditOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 import MainLayout from "@/components/MainLayout";
 import styled from "styled-components";
@@ -55,23 +60,42 @@ import dayjs from "dayjs";
 import Head from "next/head";
 
 // ---------------------------------------------------------
-// 🛠️ HELPER FUNCTION FOR MEDIA URL RESOLUTION
+// 🛠️ HELPER FUNCTION FOR MEDIA URL RESOLUTION (FIXED DOMAIN/PORT)
 // ---------------------------------------------------------
 
 const getMediaUrl = (path: string) => {
   if (!path) return "";
-  if (path.startsWith("http://") || path.startsWith("https://")) return path;
 
-  const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8008";
-  // ตัด /api หรือ / ด้านหลังออก เพื่อให้เหลือเฉพาะ Domain หลัก
+  // 1. แปลง Backslash (\) เป็น Forward Slash (/) และลบ quote/space
+  let cleanPath = String(path)
+    .replace(/\\/g, "/")
+    .replace(/^["']|["']$/g, "")
+    .trim();
+
+  // 2. ดึง Hostname หลักจาก NEXT_PUBLIC_API_URL
+  const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "https://server-ubuntu-mechatronic.taile47ae6.ts.net/api";
   const baseUrl = rawApiUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
-  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+
+  // 3. ถ้าติด localhost หรือ domain อื่นมา ให้ดึงเฉพาะ pathname (/uploads/...)
+  if (cleanPath.startsWith("http://") || cleanPath.startsWith("https://")) {
+    try {
+      const urlObj = new URL(cleanPath);
+      cleanPath = urlObj.pathname;
+    } catch (e) {
+      // ignore parsing error
+    }
+  }
+
+  // 4. เติม / ข้างหน้าถ้าไม่มี
+  if (!cleanPath.startsWith("/")) {
+    cleanPath = `/${cleanPath}`;
+  }
 
   return `${baseUrl}${cleanPath}`;
 };
 
 // ---------------------------------------------------------
-// 💎 STYLED COMPONENTS (RESPONSIVE & TOUCH-SCROLLABLE)
+// 💎 STYLED COMPONENTS
 // ---------------------------------------------------------
 
 const DashboardContainer = styled.div`
@@ -324,6 +348,15 @@ const ProfileHeaderBox = styled.div`
   }
 `;
 
+const CalendarContainer = styled.div`
+  .ant-picker-calendar {
+    background: transparent;
+  }
+  .ant-picker-cell-in-view.ant-picker-cell-selected .ant-picker-calendar-date {
+    background: rgba(16, 185, 129, 0.15);
+  }
+`;
+
 const safeExtractArray = (res: any): any[] => {
   if (Array.isArray(res)) return res;
   if (Array.isArray(res?.data)) return res.data;
@@ -344,10 +377,13 @@ export default function TeacherDashboard() {
   const [studentTasks, setStudentTasks] = useState<any[]>([]);
   const [studentSkills, setStudentSkills] = useState<any[]>([]);
   const [studentReports, setStudentReports] = useState<any[]>([]);
-  const [studentPromotions, setStudentPromotions] = useState<any[]>([]);
 
-  const [bonusPoints, setBonusPoints] = useState<number>(5);
+  // ⭐ STATES สำหรับประเมินดาว 5 ดาวรายวัน
+  const [dailyRatingDate, setDailyRatingDate] = useState<dayjs.Dayjs>(dayjs());
   const [selectedBonusSkill, setSelectedBonusSkill] = useState<any>(null);
+  const [starRating, setStarRating] = useState<number>(5);
+  const [savingRating, setSavingRating] = useState(false);
+
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
 
   const [attendanceDate, setAttendanceDate] = useState<dayjs.Dayjs>(dayjs());
@@ -358,11 +394,21 @@ export default function TeacherDashboard() {
   const [savingAttendance, setSavingAttendance] = useState(false);
 
   const [createTaskModal, setCreateTaskModal] = useState(false);
-  const [createSkillModal, setCreateSkillModal] = useState(false);
+
+  // 🛠️ SKILL MANAGEMENT MODALS & FORMS
+  const [manageSkillModalOpen, setManageSkillModalOpen] = useState(false);
+  const [isEditSkillModalOpen, setIsEditSkillModalOpen] = useState(false);
+  const [editingSkill, setEditingSkill] = useState<any>(null);
+
+  const [skillForm] = Form.useForm();
+  const [editSkillForm] = Form.useForm();
+
+  // 📅 JOURNAL CALENDAR MODAL
+  const [selectedJournalDate, setSelectedJournalDate] = useState<dayjs.Dayjs | null>(null);
+  const [isJournalDateModalOpen, setIsJournalDateModalOpen] = useState(false);
 
   const [taskForm] = Form.useForm();
   const [promotionForm] = Form.useForm();
-  const [skillForm] = Form.useForm();
 
   const loadData = async () => {
     try {
@@ -406,8 +452,21 @@ export default function TeacherDashboard() {
         existingMap[s.id] = "absent";
       });
 
+      reports.forEach((r) => {
+        if (!r.report_date) return;
+        const rDate = dayjs(r.report_date).format("YYYY-MM-DD");
+        if (rDate === formattedDate) {
+          const sId = r.user_id || r.student_id;
+          if (sId) {
+            existingMap[sId] = "present";
+          }
+        }
+      });
+
       extracted.forEach((item: any) => {
-        existingMap[item.student_id] = item.status;
+        if (item.status) {
+          existingMap[item.student_id] = item.status;
+        }
       });
 
       setAttendanceMap(existingMap);
@@ -430,7 +489,18 @@ export default function TeacherDashboard() {
     if (students.length > 0) {
       loadExistingAttendance();
     }
-  }, [attendanceDate, students]);
+  }, [attendanceDate, students, reports]);
+
+  const reportsByDate = React.useMemo(() => {
+    const map: { [date: string]: any[] } = {};
+    reports.forEach((item) => {
+      if (!item.report_date) return;
+      const d = dayjs(item.report_date).format("YYYY-MM-DD");
+      if (!map[d]) map[d] = [];
+      map[d].push(item);
+    });
+    return map;
+  }, [reports]);
 
   const handleOpenStudentDetail = async (student: any) => {
     setSelectedStudent(student);
@@ -444,11 +514,6 @@ export default function TeacherDashboard() {
       (r) => r.user_id === student.id || r.student_id === student.id
     );
     setStudentReports(filteredReports);
-
-    const filteredPromotions = promotions.filter(
-      (p) => p.student_id === student.id
-    );
-    setStudentPromotions(filteredPromotions);
 
     try {
       const resSkills = await apiClient.get(`/student-skills/${student.id}`);
@@ -540,11 +605,13 @@ export default function TeacherDashboard() {
     }
   };
 
+  // ---------------------------------------------------------
+  // ⚙️ SKILLS CRUD HANDLERS
+  // ---------------------------------------------------------
   const handleCreateSkill = async (values: any) => {
     try {
       await apiClient.post("/skills", values);
       message.success(`สร้างทักษะ "${values.name}" สำเร็จ!`);
-      setCreateSkillModal(false);
       skillForm.resetFields();
       loadData();
     } catch (error: any) {
@@ -552,26 +619,63 @@ export default function TeacherDashboard() {
     }
   };
 
-  const handleGiveBonusPoints = async (taskId?: number) => {
+  const handleOpenEditSkillModal = (record: any) => {
+    setEditingSkill(record);
+    editSkillForm.setFieldsValue({
+      name: record.name,
+      description: record.description,
+    });
+    setIsEditSkillModalOpen(true);
+  };
+
+  const handleUpdateSkill = async (values: any) => {
+    if (!editingSkill) return;
     try {
-      if (taskId) {
-        await handleApprove(taskId, "step2_grade", "approved");
-      } else {
-        await apiClient.post(
-          `/students/${selectedStudent.id}/bonus-points`,
-          {
-            points: bonusPoints,
-            skill_id: selectedBonusSkill,
-          }
-        );
-        message.success(
-          `มอบคะแนนพิเศษ +${bonusPoints} EXP ให้ ${selectedStudent.first_name} เรียบร้อยแล้ว!`
-        );
-      }
+      await apiClient.put(`/skills/${editingSkill.id}`, values);
+      message.success("แก้ไขข้อมูลทักษะเรียบร้อยแล้ว!");
+      setIsEditSkillModalOpen(false);
+      setEditingSkill(null);
+      editSkillForm.resetFields();
       loadData();
-      setIsStudentModalOpen(false);
     } catch (error: any) {
-      message.error("เกิดข้อผิดพลาดในการมอบคะแนน");
+      message.error(error.message || "ไม่สามารถแก้ไขทักษะได้");
+    }
+  };
+
+  const handleDeleteSkill = async (id: number) => {
+    try {
+      await apiClient.delete(`/skills/${id}`);
+      message.success("ลบทักษะเรียบร้อยแล้ว!");
+      loadData();
+    } catch (error: any) {
+      message.error(error.message || "ไม่สามารถลบทักษะได้");
+    }
+  };
+
+  // ⭐ ⭐ ⭐ บันทึกดาวทักษะรายวัน 1-5 ดาว
+  const handleGiveStarRating = async () => {
+    if (!selectedBonusSkill) {
+      message.warning("กรุณาเลือกทักษะที่ต้องการประเมินก่อนครับ");
+      return;
+    }
+    setSavingRating(true);
+    try {
+      const dateStr = dailyRatingDate.format("YYYY-MM-DD");
+      await apiClient.post(`/students/${selectedStudent.id}/skill-ratings`, {
+        date: dateStr,
+        skill_id: selectedBonusSkill,
+        stars: starRating,
+        points: starRating * 20,
+      });
+      message.success(
+        `ประเมิน ${starRating} ดาว ให้ ${selectedStudent.first_name} เรียบร้อยแล้ว!`
+      );
+      loadData();
+      handleOpenStudentDetail(selectedStudent);
+    } catch (error: any) {
+      message.error(error.message || "เกิดข้อผิดพลาดในการประเมินดาว");
+    } finally {
+      setSavingRating(false);
     }
   };
 
@@ -591,6 +695,51 @@ export default function TeacherDashboard() {
     } catch (error: any) {
       message.error(error.message || "เกิดข้อผิดพลาดในการเสนอเลื่อนขั้น");
     }
+  };
+
+  const dateCellRender = (value: dayjs.Dayjs) => {
+    const dateStr = value.format("YYYY-MM-DD");
+    const listData = reportsByDate[dateStr] || [];
+    if (listData.length === 0) return null;
+
+    return (
+      <div
+        style={{
+          background: "rgba(16, 185, 129, 0.15)",
+          border: "1px solid #10b981",
+          borderRadius: 6,
+          padding: "2px 4px",
+          color: "#047857",
+          fontWeight: 700,
+          fontSize: 11,
+          textAlign: "center",
+          marginTop: 4,
+        }}
+      >
+        <CameraOutlined style={{ marginRight: 4 }} />
+        อัปงาน ({listData.length})
+      </div>
+    );
+  };
+
+  const handleSelectCalendarDate = (date: dayjs.Dayjs) => {
+    const dateStr = date.format("YYYY-MM-DD");
+    const listData = reportsByDate[dateStr] || [];
+    if (listData.length > 0) {
+      setSelectedJournalDate(date);
+      setIsJournalDateModalOpen(true);
+    }
+  };
+
+  const getStudentAvgStars = (student: any): string => {
+    if (student.avg_stars != null) return Number(student.avg_stars).toFixed(1);
+    if (student.total_stars != null && student.rated_days) {
+      return (student.total_stars / student.rated_days).toFixed(1);
+    }
+    if (student.total_exp) {
+      return Math.min(student.total_exp / 20, 5).toFixed(1);
+    }
+    return "0.0";
   };
 
   const pendingStep1Count = tasks.filter((t) => t.status === "pending").length;
@@ -632,8 +781,14 @@ export default function TeacherDashboard() {
       title: "การอัปโหลดเช็คชื่อ",
       key: "journal_check",
       render: (_: any, record: any) => {
-        const isPresent = attendanceMap[record.id] === "present";
-        return isPresent ? (
+        const selectedDateStr = attendanceDate.format("YYYY-MM-DD");
+        const hasUploaded = reports.some((r) => {
+          const sId = r.user_id || r.student_id;
+          const rDate = r.report_date ? dayjs(r.report_date).format("YYYY-MM-DD") : "";
+          return sId === record.id && rDate === selectedDateStr;
+        });
+
+        return hasUploaded || attendanceMap[record.id] === "present" ? (
           <Tag
             color="green"
             icon={<CameraOutlined />}
@@ -814,6 +969,48 @@ export default function TeacherDashboard() {
     },
   ];
 
+  const skillColumns = [
+    {
+      title: "ชื่อทักษะ",
+      dataIndex: "name",
+      key: "name",
+      render: (text: string) => <span style={{ fontWeight: 700, color: "#0a192f" }}>{text}</span>,
+    },
+    {
+      title: "รายละเอียด",
+      dataIndex: "description",
+      key: "description",
+      render: (desc: string) => desc || "-",
+    },
+    {
+      title: "จัดการ",
+      key: "action",
+      render: (_: any, record: any) => (
+        <Space size="middle">
+          <Tooltip title="แก้ไข">
+            <Button
+              type="text"
+              icon={<EditOutlined style={{ color: "#2563eb", fontSize: 16 }} />}
+              onClick={() => handleOpenEditSkillModal(record)}
+            />
+          </Tooltip>
+          <Tooltip title="ลบ">
+            <Popconfirm
+              title="ยืนยันการลบทักษะนี้?"
+              description="ข้อมูลคะแนนทักษะนี้นักเรียนอาจได้รับผลกระทบ"
+              onConfirm={() => handleDeleteSkill(record.id)}
+              okText="ลบ"
+              cancelText="ยกเลิก"
+              okButtonProps={{ danger: true }}
+            >
+              <Button type="text" danger icon={<DeleteOutlined style={{ fontSize: 16 }} />} />
+            </Popconfirm>
+          </Tooltip>
+        </Space>
+      ),
+    },
+  ];
+
   return (
     <>
       <Head>
@@ -858,9 +1055,9 @@ export default function TeacherDashboard() {
                     fontWeight: 600,
                     borderRadius: 12,
                   }}
-                  onClick={() => setCreateSkillModal(true)}
+                  onClick={() => setManageSkillModalOpen(true)}
                 >
-                  + เพิ่มทักษะ
+                  ⚙️ จัดการทักษะ ({skillsList.length})
                 </Button>
                 <Button
                   type="primary"
@@ -957,6 +1154,8 @@ export default function TeacherDashboard() {
                                   t.status !== "completed"
                               ).length;
 
+                              const avgStars = getStudentAvgStars(student);
+
                               return (
                                 <Col xs={24} sm={12} md={8} lg={6} key={student.id}>
                                   <StudentGlassCard
@@ -993,6 +1192,7 @@ export default function TeacherDashboard() {
                                       รหัส: {student.student_code || student.username} | ห้อง: {student.classroom || "ทั่วไป"}
                                     </div>
 
+                                    {/* ⭐ แสดงระดับดาวเฉลี่ยของนักเรียนบนการ์ด */}
                                     <Space wrap size={8}>
                                       <Tag
                                         color="gold"
@@ -1002,10 +1202,17 @@ export default function TeacherDashboard() {
                                         Rank Lv.{student.rank_level || 1}
                                       </Tag>
                                       <Tag
-                                        color="blue"
-                                        style={{ borderRadius: 8, fontWeight: 700 }}
+                                        color="warning"
+                                        style={{
+                                          borderRadius: 8,
+                                          fontWeight: 700,
+                                          background: "#fffbe6",
+                                          borderColor: "#ffe58f",
+                                          color: "#d48806",
+                                        }}
                                       >
-                                        {student.total_exp || 0} EXP
+                                        <StarFilled style={{ color: "#fadb14" }} />{" "}
+                                        {avgStars} / 5.0 ดาว
                                       </Tag>
                                     </Space>
                                   </StudentGlassCard>
@@ -1037,87 +1244,21 @@ export default function TeacherDashboard() {
                       </div>
                     ),
                   },
-                  // TAB 3: รายงาน Journal
+                  // 🟢 TAB 3: ปฏิทินรายงาน Journal
                   {
                     key: "3",
                     label: (
                       <span>
-                        <ReadOutlined /> รายงาน Journal
+                        <CalendarOutlined /> ปฏิทิน Journal ({reports.length})
                       </span>
                     ),
                     children: (
-                      <div style={{ paddingTop: 8 }}>
-                        <Row gutter={[16, 16]}>
-                          {reports.length === 0 ? (
-                            <Col span={24}>
-                              <Empty description="ยังไม่มีการส่งรายงานประจำวัน" />
-                            </Col>
-                          ) : (
-                            reports.map((item: any) => {
-                              let files: string[] = [];
-                              try {
-                                files = item.image_url ? JSON.parse(item.image_url) : [];
-                              } catch {
-                                if (item.image_url) files = [item.image_url];
-                              }
-
-                              const formattedDate = item.report_date
-                                ? item.report_date.split("T")[0]
-                                : "";
-
-                              return (
-                                <Col xs={24} sm={12} md={8} key={item.id}>
-                                  <Card
-                                    size="small"
-                                    style={{
-                                      borderRadius: 16,
-                                      border: "1px solid rgba(212, 175, 55, 0.35)",
-                                      background: "rgba(255,255,255,0.95)",
-                                    }}
-                                  >
-                                    <div style={{ fontWeight: 700, color: "#0a192f" }}>
-                                      {item.first_name} {item.last_name} ({item.student_code || item.username})
-                                    </div>
-                                    <div style={{ fontSize: 11, color: "#64748b", margin: "2px 0 6px 0" }}>
-                                      📅 วันที่ส่ง: {formattedDate}
-                                    </div>
-                                    <p style={{ fontSize: 12.5, color: "#334155", margin: "0 0 8px 0" }}>
-                                      {item.details || "ไม่มีข้อความอธิบาย"}
-                                    </p>
-
-                                    {files.length > 0 && (
-                                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                        {files.map((fileUrl, idx) => {
-                                          const isVideo = fileUrl.match(/\.(mp4|mov|avi|webm|mkv)$/i);
-                                          const fullUrl = getMediaUrl(fileUrl);
-                                          
-                                          return isVideo ? (
-                                            <video 
-                                              key={idx} 
-                                              src={fullUrl} 
-                                              controls 
-                                              style={{ width: 120, height: 80, borderRadius: 8, objectFit: "cover" }} 
-                                            />
-                                          ) : (
-                                            <Image
-                                              key={idx}
-                                              width={60}
-                                              height={60}
-                                              style={{ objectFit: "cover", borderRadius: 8 }}
-                                              src={fullUrl}
-                                              alt="รูปปฏิบัติงาน"
-                                            />
-                                          );
-                                        })}
-                                      </div>
-                                    )}
-                                  </Card>
-                                </Col>
-                              );
-                            })
-                          )}
-                        </Row>
-                      </div>
+                      <CalendarContainer style={{ paddingTop: 8 }}>
+                        <Calendar
+                          dateCellRender={dateCellRender}
+                          onSelect={handleSelectCalendarDate}
+                        />
+                      </CalendarContainer>
                     ),
                   },
                   // TAB 4: ตรวจสอบการเข้าเรียน
@@ -1224,6 +1365,192 @@ export default function TeacherDashboard() {
               />
             </ContentPanel>
 
+            {/* 📅 MODAL แสดงรายละเอียด Journal ประจำวันที่กดจาก ปฏิทิน */}
+            <Modal
+              title={
+                <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#0a192f" }}>
+                  📅 รายงาน Journal วันที่{" "}
+                  {selectedJournalDate ? selectedJournalDate.format("DD/MM/YYYY") : ""}
+                </div>
+              }
+              open={isJournalDateModalOpen}
+              onCancel={() => setIsJournalDateModalOpen(false)}
+              footer={null}
+              centered
+              width={760}
+            >
+              <div style={{ maxHeight: 500, overflowY: "auto", paddingTop: 10 }}>
+                {selectedJournalDate && (
+                  <Row gutter={[16, 16]}>
+                    {(reportsByDate[selectedJournalDate.format("YYYY-MM-DD")] || []).map(
+                      (item: any) => {
+                        let files: string[] = [];
+                        try {
+                          files = item.image_url ? JSON.parse(item.image_url) : [];
+                        } catch {
+                          if (item.image_url) files = [item.image_url];
+                        }
+
+                        return (
+                          <Col xs={24} sm={12} key={item.id}>
+                            <Card
+                              size="small"
+                              style={{
+                                borderRadius: 16,
+                                border: "1px solid rgba(212, 175, 55, 0.35)",
+                                background: "rgba(255,255,255,0.95)",
+                              }}
+                            >
+                              <div style={{ fontWeight: 700, color: "#0a192f" }}>
+                                {item.first_name} {item.last_name} ({item.student_code || item.username})
+                              </div>
+                              <div style={{ fontSize: 11, color: "#64748b", margin: "2px 0 6px 0" }}>
+                                📅 วันที่ส่ง: {item.report_date ? item.report_date.split("T")[0] : ""}
+                              </div>
+                              <p style={{ fontSize: 12.5, color: "#334155", margin: "0 0 8px 0" }}>
+                                {item.details || "ไม่มีข้อความอธิบาย"}
+                              </p>
+
+                              {files.length > 0 && (
+                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                  {files.map((fileUrl, idx) => {
+                                    const isVideo = fileUrl.match(/\.(mp4|mov|avi|webm|mkv)$/i);
+                                    const fullUrl = getMediaUrl(fileUrl);
+
+                                    return isVideo ? (
+                                      <video
+                                        key={idx}
+                                        src={fullUrl}
+                                        controls
+                                        style={{ width: 120, height: 80, borderRadius: 8, objectFit: "cover" }}
+                                      />
+                                    ) : (
+                                      <Image
+                                        key={idx}
+                                        width={60}
+                                        height={60}
+                                        style={{ objectFit: "cover", borderRadius: 8 }}
+                                        src={fullUrl}
+                                        alt="รูปปฏิบัติงาน"
+                                      />
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </Card>
+                          </Col>
+                        );
+                      }
+                    )}
+                  </Row>
+                )}
+              </div>
+            </Modal>
+
+            {/* ⚙️ MODAL จัดการทักษะ */}
+            <Modal
+              title="⚙️ ระบบจัดการทักษะ (Skill Management)"
+              open={manageSkillModalOpen}
+              onCancel={() => setManageSkillModalOpen(false)}
+              footer={null}
+              centered
+              width={720}
+            >
+              <div style={{ padding: "8px 0" }}>
+                <Card
+                  title="➕ เพิ่มทักษะใหม่"
+                  size="small"
+                  style={{ marginBottom: 16, background: "#f8fafc" }}
+                >
+                  <Form form={skillForm} layout="vertical" onFinish={handleCreateSkill}>
+                    <Row gutter={12}>
+                      <Col span={12}>
+                        <Form.Item
+                          name="name"
+                          label="ชื่อทักษะ"
+                          rules={[{ required: true, message: "กรุณากรอกชื่อทักษะ" }]}
+                        >
+                          <Input placeholder="เช่น การเขียนโปรแกรม PLC" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item name="description" label="รายละเอียด">
+                          <Input placeholder="เช่น ขอบเขตคำอธิบายทักษะ..." />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      block
+                      style={{
+                        background: "#0a192f",
+                        border: "1px solid #d4af37",
+                        borderRadius: 8,
+                      }}
+                    >
+                      สร้างทักษะ
+                    </Button>
+                  </Form>
+                </Card>
+
+                <h4 style={{ margin: "0 0 10px 0", color: "#0f172a" }}>รายการทักษะทั้งหมด</h4>
+                <StyledTable
+                  dataSource={skillsList}
+                  columns={skillColumns}
+                  rowKey="id"
+                  pagination={{ pageSize: 5 }}
+                  size="small"
+                />
+              </div>
+            </Modal>
+
+            {/* ✏️ MODAL เด้งเฉพาะสำหรับแก้ไขทักษะ */}
+            <Modal
+              title="✏️ แก้ไขข้อมูลทักษะ"
+              open={isEditSkillModalOpen}
+              onCancel={() => {
+                setIsEditSkillModalOpen(false);
+                setEditingSkill(null);
+                editSkillForm.resetFields();
+              }}
+              footer={null}
+              centered
+              width={500}
+            >
+              <Form
+                form={editSkillForm}
+                layout="vertical"
+                onFinish={handleUpdateSkill}
+                style={{ marginTop: 12 }}
+              >
+                <Form.Item
+                  name="name"
+                  label="ชื่อทักษะ"
+                  rules={[{ required: true, message: "กรุณากรอกชื่อทักษะ" }]}
+                >
+                  <Input placeholder="ชื่อทักษะ..." size="middle" />
+                </Form.Item>
+                <Form.Item name="description" label="รายละเอียดทักษะ">
+                  <Input.TextArea rows={3} placeholder="คำอธิบาย..." />
+                </Form.Item>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  block
+                  style={{
+                    background: "#059669",
+                    border: "none",
+                    borderRadius: 8,
+                    height: 40,
+                    fontWeight: 700,
+                  }}
+                >
+                  บันทึกการแก้ไข
+                </Button>
+              </Form>
+            </Modal>
+
             {/* 🎴 MODAL การ์ดประจำตัวนักเรียน */}
             <Modal
               title={null}
@@ -1273,19 +1600,26 @@ export default function TeacherDashboard() {
                           Rank Lv.{selectedStudent.rank_level || 1}
                         </Tag>
                         <Tag
-                          color="purple"
-                          style={{ borderRadius: 8, fontWeight: 700, padding: "2px 10px" }}
+                          color="warning"
+                          style={{
+                            borderRadius: 8,
+                            fontWeight: 700,
+                            padding: "2px 10px",
+                            background: "#fffbe6",
+                            borderColor: "#ffe58f",
+                            color: "#d48806",
+                          }}
                         >
-                          <StarFilled style={{ color: "#facc15" }} />{" "}
-                          {selectedStudent.total_exp || 0} Total EXP
+                          <StarFilled style={{ color: "#fadb14" }} />{" "}
+                          เฉลี่ย {getStudentAvgStars(selectedStudent)} / 5.0 ดาว
                         </Tag>
                       </div>
                     </div>
                   </ProfileHeaderBox>
 
                   <Row gutter={[20, 20]}>
-                    <Col xs={24} md={9}>
-                      {/* หลอดทักษะ */}
+                    <Col xs={24} md={10}>
+                      {/* ⭐ แสดงหลอดดาวทักษะสะสม */}
                       <div
                         style={{
                           background: "#f8fafc",
@@ -1306,24 +1640,30 @@ export default function TeacherDashboard() {
                             gap: 6,
                           }}
                         >
-                          <BuildOutlined style={{ color: "#2563eb" }} /> ระดับทักษะสะสม
+                          <BuildOutlined style={{ color: "#2563eb" }} /> คะแนนทักษะสะสม (ดาว)
                         </h4>
                         {studentSkills.length === 0 ? (
                           <p style={{ color: "#94a3b8", textAlign: "center", margin: 0, fontSize: 12, padding: "8px 0" }}>
                             ยังไม่มีคะแนนทักษะในระบบ
                           </p>
                         ) : (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                             {studentSkills.map((sk, idx) => {
-                              const pts = sk.points || 0;
-                              const percent = Math.min(pts, 100);
+                              const avgSkillStar = sk.avg_stars != null
+                                ? sk.avg_stars
+                                : sk.stars != null
+                                ? sk.stars
+                                : (sk.points ? Math.min(sk.points / 20, 5) : 0);
+                              
                               return (
-                                <div key={sk.skill_id || idx}>
-                                  <div style={{ marginBottom: 2, display: "flex", justifyContent: "space-between", fontSize: "0.82rem", fontWeight: 600 }}>
+                                <div key={sk.skill_id || idx} style={{ background: "#fff", padding: "8px 10px", borderRadius: 10, border: "1px solid #f1f5f9" }}>
+                                  <div style={{ marginBottom: 4, display: "flex", justifyContent: "space-between", fontSize: "0.84rem", fontWeight: 700 }}>
                                     <span>{sk.skill_name || "ทักษะวิชาชีพ"}</span>
-                                    <span style={{ color: "#2563eb" }}>{pts} แต้ม</span>
+                                    <span style={{ color: "#d48806" }}>
+                                      ⭐ {Number(avgSkillStar).toFixed(1)} / 5
+                                    </span>
                                   </div>
-                                  <Progress percent={percent} showInfo={false} strokeColor="#2563eb" trailColor="#e2e8f0" strokeWidth={8} />
+                                  <Rate disabled allowHalf value={Number(avgSkillStar)} style={{ fontSize: 14, color: "#fadb14" }} />
                                 </div>
                               );
                             })}
@@ -1331,52 +1671,69 @@ export default function TeacherDashboard() {
                         )}
                       </div>
 
-                      {/* มอบคะแนนพิเศษ */}
+                      {/* ⭐ ฟอร์มประเมินดาวทักษะรายวัน */}
                       <div
                         style={{
-                          background: "#f0fdf4",
+                          background: "#fffbe6",
                           borderRadius: 16,
                           padding: 16,
-                          border: "1px solid #bbf7d0",
+                          border: "1px solid #ffe58f",
                         }}
                       >
-                        <h4 style={{ margin: "0 0 10px 0", color: "#166534", fontWeight: 800, fontSize: "0.92rem" }}>
-                          ⚡ มอบคะแนนพิเศษ (EXP)
+                        <h4 style={{ margin: "0 0 10px 0", color: "#d48806", fontWeight: 800, fontSize: "0.92rem" }}>
+                          ⭐ ประเมินดาวทักษะรายวัน (เต็ม 5 ดาว)
                         </h4>
                         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                          <InputNumber
-                            min={1}
-                            max={100}
-                            value={bonusPoints}
-                            onChange={(val) => setBonusPoints(val || 1)}
-                            style={{ width: "100%", borderRadius: 8, height: 38, display: "flex", alignItems: "center" }}
-                          />
-                          <Select
-                            placeholder="เลือกทักษะที่ต้องการบวกแต้ม"
-                            allowClear
-                            style={{ width: "100%", height: 38 }}
-                            onChange={(val) => setSelectedBonusSkill(val)}
-                          >
-                            {skillsList.map((sk) => (
-                              <Select.Option key={sk.id} value={sk.id}>
-                                {sk.name}
-                              </Select.Option>
-                            ))}
-                          </Select>
+                          <div>
+                            <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>เลือกวันที่ประเมิน:</span>
+                            <DatePicker
+                              value={dailyRatingDate}
+                              onChange={(d) => d && setDailyRatingDate(d)}
+                              format="DD/MM/YYYY"
+                              style={{ width: "100%", marginTop: 4, borderRadius: 8, height: 36 }}
+                            />
+                          </div>
+                          
+                          <div>
+                            <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>เลือกทักษะ:</span>
+                            <Select
+                              placeholder="-- เลือกหมวดหมู่ทักษะ --"
+                              allowClear
+                              style={{ width: "100%", marginTop: 4, height: 36 }}
+                              onChange={(val) => setSelectedBonusSkill(val)}
+                            >
+                              {skillsList.map((sk) => (
+                                <Select.Option key={sk.id} value={sk.id}>
+                                  {sk.name}
+                                </Select.Option>
+                              ))}
+                            </Select>
+                          </div>
+
+                          <div style={{ textAlign: "center", padding: "4px 0" }}>
+                            <div style={{ fontSize: 12, color: "#64748b", marginBottom: 4, fontWeight: 600 }}>ให้คะแนน (1 - 5 ดาว):</div>
+                            <Rate
+                              value={starRating}
+                              onChange={(val) => setStarRating(val || 1)}
+                              style={{ fontSize: 24, color: "#fadb14" }}
+                            />
+                          </div>
+
                           <Button
                             type="primary"
                             icon={<SendOutlined />}
+                            loading={savingRating}
                             block
                             style={{ background: "#0a192f", border: "1px solid #d4af37", borderRadius: 8, height: 38, fontWeight: 600 }}
-                            onClick={() => handleGiveBonusPoints()}
+                            onClick={handleGiveStarRating}
                           >
-                            มอบคะแนน
+                            บันทึกการประเมินดาว
                           </Button>
                         </div>
                       </div>
                     </Col>
 
-                    <Col xs={24} md={15}>
+                    <Col xs={24} md={14}>
                       <ScrollableTabs
                         defaultActiveKey="tasks"
                         size="middle"
@@ -1565,28 +1922,6 @@ export default function TeacherDashboard() {
                 </Form.Item>
                 <Button type="primary" htmlType="submit" block style={{ background: "#0a192f", border: "1px solid #d4af37", borderRadius: 10, height: 42 }}>
                   ยืนยันสั่งงาน
-                </Button>
-              </Form>
-            </Modal>
-
-            {/* Modal เพิ่มทักษะใหม่ */}
-            <Modal
-              title="⚙️ เพิ่มหมวดหมู่ทักษะใหม่ลง Database"
-              open={createSkillModal}
-              onCancel={() => setCreateSkillModal(false)}
-              footer={null}
-              centered
-              width={480}
-            >
-              <Form form={skillForm} layout="vertical" onFinish={handleCreateSkill} style={{ marginTop: 12 }}>
-                <Form.Item name="name" label="ชื่อทักษะ (Skill Name)" rules={[{ required: true, message: "กรุณากรอกชื่อทักษะ" }]}>
-                  <Input placeholder="เช่น การเขียนโปรแกรม PLC" size="middle" />
-                </Form.Item>
-                <Form.Item name="description" label="รายละเอียดทักษะ">
-                  <Input.TextArea rows={3} placeholder="คำอธิบายขอบเขตทักษะ..." />
-                </Form.Item>
-                <Button type="primary" htmlType="submit" block style={{ background: "#0a192f", border: "1px solid #d4af37", borderRadius: 10, height: 42 }}>
-                  สร้างทักษะ
                 </Button>
               </Form>
             </Modal>
